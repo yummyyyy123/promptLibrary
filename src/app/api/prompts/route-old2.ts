@@ -25,15 +25,10 @@ export async function GET() {
       }
 
       console.log('✅ Supabase success, prompts:', data?.length || 0)
-      console.log('📊 Data structure:', JSON.stringify(data, null, 2))
-      
-      // Return in the format expected by frontend
       return NextResponse.json({ prompts: data || [] })
     } else {
       console.log('📁 Using JSON fallback...')
-      const jsonResult = getPromptsFromJSON()
-      console.log('📊 JSON result structure:', JSON.stringify(jsonResult, null, 2))
-      return jsonResult
+      return getPromptsFromJSON()
     }
   } catch (error) {
     console.error('Error:', error)

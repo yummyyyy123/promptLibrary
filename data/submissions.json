@@ -38,5 +38,23 @@
     "isFavorite": false,
     "reviewedAt": "2026-02-27T07:38:49.734Z",
     "reviewedBy": "admin"
+  },
+  {
+    "id": "1772181597802",
+    "title": "test123",
+    "description": "eqe",
+    "category": "Marketing",
+    "tags": [
+      "eqe"
+    ],
+    "prompt": "eqeqe",
+    "variables": [
+      "eee"
+    ],
+    "status": "pending",
+    "submittedBy": "eee",
+    "submittedAt": "2026-02-27T08:39:57.802Z",
+    "usageCount": 0,
+    "isFavorite": false
   }
 ]
