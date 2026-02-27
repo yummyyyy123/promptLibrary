@@ -252,6 +252,13 @@ export default function AdminPanel() {
                           <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-medium rounded-full">
                             {submission.category}
                           </span>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            submission.status === 'pending' ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200' :
+                            submission.status === 'approved' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
+                            'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+                          }`}>
+                            {submission.status}
+                          </span>
                           <span className="text-xs text-gray-500 dark:text-gray-400">
                             {new Date(submission.submitted_at).toLocaleDateString()}
                           </span>
@@ -267,22 +274,26 @@ export default function AdminPanel() {
                         >
                           <Eye className="w-5 h-5" />
                         </button>
-                        <button
-                          onClick={() => handleApprove(submission.id)}
-                          className="p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900 rounded-lg transition-colors"
-                        >
-                          <Check className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedSubmission(submission)
-                            setRejectionId(submission.id)
-                            setShowRejectModal(true)
-                          }}
-                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg transition-colors"
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
+                        {submission.status === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => handleApprove(submission.id)}
+                              className="p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900 rounded-lg transition-colors"
+                            >
+                              <Check className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedSubmission(submission)
+                                setRejectionId(submission.id)
+                                setShowRejectModal(true)
+                              }}
+                              className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg transition-colors"
+                            >
+                              <X className="w-5 h-5" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </motion.div>

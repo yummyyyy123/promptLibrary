@@ -163,24 +163,26 @@ export async function GET(request: NextRequest) {
     const { createClient } = await import('@supabase/supabase-js')
     const supabase = createClient(supabaseUrl, supabaseKey)
 
+    // Get ALL submissions first, then filter if status provided
     let query = supabase
       .from('submissions')
       .select('*')
       .order('submitted_at', { ascending: false })
 
-    // Filter by status if provided
-    if (status) {
-      query = query.eq('status', status)
-    }
+    const { data: allSubmissions, error: fetchError } = await query
 
-    const { data: submissions, error } = await query
-
-    if (error) {
-      console.error('💥 ADMIN: Fetch submissions error:', error)
+    if (fetchError) {
+      console.error('💥 ADMIN: Fetch submissions error:', fetchError)
       return NextResponse.json(
         { error: 'Failed to fetch submissions' },
         { status: 500 }
       )
+    }
+
+    // Filter by status if provided (for filtering)
+    let submissions = allSubmissions || []
+    if (status) {
+      submissions = submissions.filter(s => s.status === status)
     }
 
     // Calculate stats
