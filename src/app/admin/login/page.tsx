@@ -20,6 +20,7 @@ export default function AdminLogin() {
   const [tempToken, setTempToken] = useState('')
   const [phoneLastFour, setPhoneLastFour] = useState('')
   const [resendTimer, setResendTimer] = useState(0)
+  const [otpCode, setOtpCode] = useState('')
   const router = useRouter()
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
@@ -36,7 +37,7 @@ export default function AdminLogin() {
           'Referer': window.location.href
         },
         body: JSON.stringify({
-          phone,
+          phone: credentials.phone,
           otp: otpCode
         })
       })
@@ -105,7 +106,6 @@ export default function AdminLogin() {
     setIsLoading(true)
 
     try {
-      const otpCode = '' // Define otpCode to avoid TypeScript error
       const response = await fetch('/api/admin/auth/twilio-sms', {
         method: 'POST',
         headers: {
@@ -114,7 +114,7 @@ export default function AdminLogin() {
           'Referer': window.location.href
         },
         body: JSON.stringify({
-          phone,
+          phone: credentials.phone,
           otp: otpCode
         })
       })
