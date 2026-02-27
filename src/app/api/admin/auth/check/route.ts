@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifySecureJWT, SecurityLogger, secureAPI } from '@/lib/security'
+import jwt from 'jsonwebtoken'
 
-export const GET = secureAPI(async (request: NextRequest) => {
+export async function GET(request: NextRequest) {
   try {
     const token = request.cookies.get('admin-token')?.value || ''
-    
+    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+
     if (!token) {
-      SecurityLogger.logAuthAttempt('unknown', false, request.headers.get('user-agent') || 'unknown')
       return NextResponse.json({ 
         authenticated: false,
         error: 'No token provided'
@@ -14,10 +14,7 @@ export const GET = secureAPI(async (request: NextRequest) => {
     }
 
     try {
-      const decoded = verifySecureJWT(token)
-      
-      SecurityLogger.logAuthAttempt(decoded.username, true, request.headers.get('user-agent') || 'unknown')
-      
+      const decoded = jwt.verify(token, JWT_SECRET) as any
       return NextResponse.json({ 
         authenticated: true,
         user: { 
@@ -26,20 +23,15 @@ export const GET = secureAPI(async (request: NextRequest) => {
         }
       })
     } catch (error: any) {
-      SecurityLogger.logAuthAttempt('unknown', false, request.headers.get('user-agent') || 'unknown')
       return NextResponse.json({ 
         authenticated: false,
         error: 'Invalid token'
       })
     }
   } catch (error: any) {
-    SecurityLogger.log('error', 'auth_check_error', { 
-      error: error.message,
-      ip: request.headers.get('x-forwarded-for') || 'unknown'
-    })
     return NextResponse.json({ 
       authenticated: false,
       error: 'Server error'
     })
   }
-})
+}

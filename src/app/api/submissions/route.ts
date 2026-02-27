@@ -1,8 +1,7 @@
-// SUBMISSIONS API - Secure implementation with OWASP protections
+// SUBMISSIONS API - Simple working version
 import { NextResponse } from 'next/server'
-import { validateInput, SecurityLogger, secureAPI } from '@/lib/security'
 
-export const POST = secureAPI(async (request: Request) => {
+export async function POST(request: Request) {
   try {
     console.log('🔍 SUBMISSION: New prompt submission...')
     
@@ -18,20 +17,19 @@ export const POST = secureAPI(async (request: Request) => {
     }
     
     const body = await request.json()
-    console.log('🔍 SUBMISSION: Received data:', body)
+    console.log('🔍 SUBMISSION: Request body:', body)
     
-    // Validate all inputs
-    const validatedData = {
-      title: validateInput(body.title, 'text'),
-      description: validateInput(body.description, 'text'),
-      category: validateInput(body.category, 'category'),
-      tags: Array.isArray(body.tags) ? body.tags.map((tag: string) => validateInput(tag, 'text')) : [],
-      prompt: validateInput(body.prompt, 'prompt'),
-      variables: Array.isArray(body.variables) ? body.variables.map((variable: string) => validateInput(variable, 'text')) : [],
-      submitted_by: validateInput(body.submittedBy || 'anonymous', 'text')
+    // Validate required fields
+    const requiredFields = ['title', 'description', 'category', 'prompt']
+    const missingFields = requiredFields.filter(field => !body[field])
+    
+    if (missingFields.length > 0) {
+      console.error('💥 SUBMISSION: Missing fields:', missingFields)
+      return NextResponse.json(
+        { error: `Missing required fields: ${missingFields.join(', ')}` },
+        { status: 400 }
+      )
     }
-    
-    console.log('🔍 SUBMISSION: Validated data:', validatedData)
     
     const { createClient } = await import('@supabase/supabase-js')
     const supabase = createClient(supabaseUrl, supabaseKey)
@@ -42,14 +40,14 @@ export const POST = secureAPI(async (request: Request) => {
     const { data, error } = await supabase
       .from('submissions')
       .insert({
-        title: validatedData.title,
-        description: validatedData.description,
-        category: validatedData.category,
-        tags: validatedData.tags,
-        prompt: validatedData.prompt,
-        variables: validatedData.variables,
+        title: body.title,
+        description: body.description,
+        category: body.category,
+        tags: body.tags || [],
+        prompt: body.prompt,
+        variables: body.variables || [],
         status: 'pending',
-        submitted_by: validatedData.submitted_by
+        submitted_by: body.submittedBy || 'anonymous'
       })
       .select()
       .single()
@@ -60,7 +58,6 @@ export const POST = secureAPI(async (request: Request) => {
     
     if (error) {
       console.error('💥 SUBMISSION: Supabase error:', error)
-      SecurityLogger.log('error', 'submission_database_error', { error: error.message })
       return NextResponse.json({ 
         error: 'Failed to submit prompt',
         details: error.message,
@@ -70,12 +67,6 @@ export const POST = secureAPI(async (request: Request) => {
     
     console.log('✅ SUBMISSION: Success!')
     
-    SecurityLogger.log('info', 'submission_successful', { 
-      submissionId: data.id,
-      title: data.title,
-      category: data.category
-    })
-    
     return NextResponse.json({
       message: 'Prompt submitted successfully',
       submission: data,
@@ -84,25 +75,20 @@ export const POST = secureAPI(async (request: Request) => {
     
   } catch (error: any) {
     console.error('💥 SUBMISSION: Critical error:', error)
-    SecurityLogger.log('error', 'submission_critical_error', { 
-      error: error.message,
-      stack: error.stack
-    })
     return NextResponse.json({ 
       error: 'Failed to submit prompt',
       details: error.message,
       source: 'critical_error'
     }, { status: 500 })
   }
-})
+}
 
-export const GET = secureAPI(async (request: Request) => {
+export async function GET(request: Request) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.SUPABASE_SERVICE_KEY
     
     if (!supabaseUrl || !supabaseKey) {
-      console.error('💥 SUBMISSION: Supabase credentials missing!')
       return NextResponse.json({ 
         error: 'Supabase credentials not configured',
         submissions: []
@@ -131,7 +117,6 @@ export const GET = secureAPI(async (request: Request) => {
     
     if (error) {
       console.error('💥 SUBMISSIONS: Supabase error:', error)
-      SecurityLogger.log('error', 'submissions_fetch_error', { error: error.message })
       return NextResponse.json({ 
         error: 'Failed to fetch submissions',
         submissions: []
@@ -144,13 +129,9 @@ export const GET = secureAPI(async (request: Request) => {
     
   } catch (error: any) {
     console.error('💥 SUBMISSIONS: Critical error:', error)
-    SecurityLogger.log('error', 'submissions_critical_error', { 
-      error: error.message,
-      stack: error.stack
-    })
     return NextResponse.json({ 
       error: 'Failed to fetch submissions',
       submissions: []
     }, { status: 500 })
   }
-})
+}
