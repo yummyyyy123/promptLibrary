@@ -1,62 +1,74 @@
+// REBUILT: Simple, reliable prompts API with forced Supabase integration
 import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
-    console.log('🔍 Debug: Checking environment variables...')
-    console.log('NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET' : 'NOT SET')
-    console.log('SUPABASE_SERVICE_KEY:', process.env.SUPABASE_SERVICE_KEY ? 'SET' : 'NOT SET')
-    console.log('ADMIN_USERNAME:', process.env.ADMIN_USERNAME ? 'SET' : 'NOT SET')
-    console.log('ADMIN_PASSWORD:', process.env.ADMIN_PASSWORD ? 'SET' : 'NOT SET')
+    console.log('🔍 REBUILD: Checking environment variables...')
     
-    // Try Supabase first
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
-      console.log('📊 Using Supabase database...')
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY)
-      
-      const { data, error } = await supabase
-        .from('prompts')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('Supabase error:', error)
-        return getPromptsFromJSON()
-      }
-
-      console.log('✅ Supabase success, prompts:', data?.length || 0)
-      console.log('📊 Data structure:', JSON.stringify(data, null, 2))
-      
-      // Return in the format expected by frontend
-      return NextResponse.json({ prompts: data || [] })
-    } else {
-      console.log('📁 Using JSON fallback...')
-      const jsonResult = getPromptsFromJSON()
-      console.log('📊 JSON result structure:', JSON.stringify(jsonResult, null, 2))
-      return jsonResult
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_KEY
+    
+    console.log('🔍 Supabase URL:', supabaseUrl ? 'SET' : 'NOT SET')
+    console.log('🔍 Supabase Key:', supabaseKey ? 'SET' : 'NOT SET')
+    
+    // FORCE USE SUPABASE - NO FALLBACK
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('💥 REBUILD: Supabase credentials missing!')
+      return NextResponse.json({ 
+        error: 'Supabase credentials not configured',
+        prompts: [],
+        using_supabase: false,
+        source: 'error'
+      }, { status: 500 })
     }
-  } catch (error) {
-    console.error('Error:', error)
-    return getPromptsFromJSON()
-  }
-}
-
-async function getPromptsFromJSON() {
-  try {
-    const { promises: fs } = await import('fs')
-    const path = await import('path')
     
-    const filePath = path.join(process.cwd(), 'data', 'prompts.json')
-    const fileContents = await fs.readFile(filePath, 'utf8')
-    const promptsData = JSON.parse(fileContents)
+    console.log('📊 REBUILD: Using Supabase database...')
     
-    console.log('📁 JSON fallback, prompts:', promptsData.prompts?.length || 0)
-    return NextResponse.json(promptsData)
-  } catch (error) {
-    console.error('JSON fallback error:', error)
-    return NextResponse.json(
-      { error: 'Failed to load prompts' },
-      { status: 500 }
-    )
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(supabaseUrl, supabaseKey)
+    
+    const { data: prompts, error } = await supabase
+      .from('prompts')
+      .select('*')
+      .order('created_at', { ascending: false })
+    
+    if (error) {
+      console.error('💥 REBUILD: Supabase error:', error)
+      return NextResponse.json({ 
+        error: 'Supabase query failed',
+        details: error.message,
+        prompts: [],
+        using_supabase: false,
+        source: 'supabase_error'
+      }, { status: 500 })
+    }
+    
+    console.log('✅ REBUILD: Supabase success!')
+    console.log('📊 REBUILD: Prompts count:', prompts?.length || 0)
+    console.log('📊 REBUILD: First prompt:', prompts?.[0]?.title || 'None')
+    
+    // FORCE RETURN SUPABASE DATA
+    return NextResponse.json({ 
+      prompts: prompts || [],
+      using_supabase: true,
+      source: 'supabase_rebuild',
+      count: prompts?.length || 0,
+      debug: {
+        env_check: {
+          url_set: !!supabaseUrl,
+          key_set: !!supabaseKey
+        }
+      }
+    })
+    
+  } catch (error: any) {
+    console.error('💥 REBUILD: Critical error:', error)
+    return NextResponse.json({ 
+      error: 'Critical API error',
+      details: error.message,
+      prompts: [],
+      using_supabase: false,
+      source: 'critical_error'
+    }, { status: 500 })
   }
 }
