@@ -4,11 +4,11 @@ import { SMSOTP } from '@/lib/smsOTP'
 
 export async function POST(request: NextRequest) {
   try {
-    const { phone, otp } = await request.json()
+    const { phone } = await request.json()
 
-    if (!phone || !otp) {
+    if (!phone) {
       return NextResponse.json({ 
-        error: 'Phone number and OTP required' 
+        error: 'Phone number required' 
       }, { status: 400 })
     }
 
@@ -19,6 +19,13 @@ export async function POST(request: NextRequest) {
         error: 'Invalid phone number format. Use 09XXXXXXXXX format (11 digits).' 
       }, { status: 400 })
     }
+
+    // Generate OTP
+    const { SMSOTP } = await import('@/lib/smsOTP')
+    const otp = SMSOTP.generateOTP()
+    
+    console.log(`📱 Generated OTP: ${otp} for phone: ${phone}`)
+    console.log(`⏰ Generated at: ${new Date().toISOString()}`)
 
     // Twilio configuration
     const accountSid = process.env.TWILIO_ACCOUNT_SID
@@ -32,12 +39,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Import Twilio (server-side)
-    const twilio = require('twilio')(accountSid, authToken)
-
     try {
       console.log(`📱 Sending SMS via Twilio to ${phone}`)
       console.log(`🔍 OTP Code: ${otp}`)
       
+      // Import Twilio (server-side)
+      const twilio = require('twilio')(accountSid, authToken)
+
       const message = await twilio.messages.create({
         body: `Your OTP is: ${otp}. Valid for 5 minutes. Do not share this code.`,
         from: twilioPhone,
@@ -52,14 +60,16 @@ export async function POST(request: NextRequest) {
         success: true,
         message: 'SMS sent successfully via Twilio',
         messageId: message.sid,
-        status: message.status
+        status: message.status,
+        otp: otp // Return OTP for testing
       })
 
     } catch (error: any) {
       console.error('❌ Twilio SMS failed:', error)
       return NextResponse.json({ 
         error: 'Failed to send SMS via Twilio',
-        details: error.message
+        details: error.message,
+        otp: otp // Return OTP for testing even if SMS fails
       }, { status: 500 })
     }
   } catch (error: any) {

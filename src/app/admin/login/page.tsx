@@ -45,18 +45,19 @@ export default function AdminLogin() {
       const data = await response.json()
 
       if (response.ok) {
-        if (data.requiresOTP) {
-          setTempToken(data.tempToken)
-          setPhoneLastFour(data.phoneLastFour)
+        if (data.success) {
+          // OTP sent successfully
+          setTempToken('temp-' + Date.now()) // Create temp token
+          setPhoneLastFour(credentials.phone.slice(-4))
           setStep('otp')
-          startResendTimer(data.expiresIn)
+          startResendTimer(300)
           
           // Show OTP code in alert (for testing)
           if (typeof window !== 'undefined') {
-            alert(`📱 OTP Code: Check browser console for OTP code`)
+            alert(`📱 OTP Code: ${data.otp} (Check console for details)`)
           }
         } else {
-          router.push('/admin')
+          setError(data.error || 'Failed to send OTP')
         }
       } else {
         setError(data.error || 'Login failed')
@@ -121,11 +122,21 @@ export default function AdminLogin() {
 
       const data = await response.json()
 
-      if (response.ok && data.requiresOTP) {
-        setTempToken(data.tempToken)
-        startResendTimer(data.expiresIn)
-        setError('OTP resent successfully')
-        setTimeout(() => setError(''), 3000)
+      if (response.ok) {
+        if (data.success) {
+          // OTP resent successfully
+          setTempToken('temp-' + Date.now())
+          startResendTimer(300)
+          setError('OTP resent successfully')
+          setTimeout(() => setError(''), 3000)
+          
+          // Show OTP code in alert (for testing)
+          if (typeof window !== 'undefined') {
+            alert(`📱 OTP Code: ${data.otp} (Check console for details)`)
+          }
+        } else {
+          setError(data.error || 'Failed to resend OTP')
+        }
       } else {
         setError(data.error || 'Failed to resend OTP')
       }
