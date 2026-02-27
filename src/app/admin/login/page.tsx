@@ -2,51 +2,153 @@
 
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Shield, Eye, EyeOff, Lock, User, AlertCircle, Smartphone, Key } from 'lucide-react'
+import { Shield, Eye, EyeOff, Lock, User, AlertCircle, Smartphone, ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 export default function AdminLogin() {
+  // This is now the default login page with 2FA
+  const [step, setStep] = useState<'password' | 'otp'>('password')
   const [credentials, setCredentials] = useState({
     username: '',
-    password: ''
+    password: '',
+    phone: '',
+    otp: ''
   })
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  const [use2FA, setUse2FA] = useState(false)
+  const [tempToken, setTempToken] = useState('')
+  const [phoneLastFour, setPhoneLastFour] = useState('')
+  const [resendTimer, setResendTimer] = useState(0)
   const router = useRouter()
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setIsLoading(true)
 
     try {
-      if (use2FA) {
-        // Redirect to 2FA login
-        router.push('/admin/login/2fa')
-      } else {
-        // Traditional login (for backward compatibility)
-        const response = await fetch('/api/admin/auth/check', {
-          method: 'GET',
-          headers: {
-            'Cookie': document.cookie
-          }
+      const response = await fetch('/api/admin/auth/2fa-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username: credentials.username,
+          password: credentials.password,
+          phone: credentials.phone,
+          action: 'password'
         })
+      })
 
-        const data = await response.json()
+      const data = await response.json()
 
-        if (data.authenticated) {
-          router.push('/admin')
+      if (response.ok) {
+        if (data.requiresOTP) {
+          setTempToken(data.tempToken)
+          setPhoneLastFour(data.phoneLastFour)
+          setStep('otp')
+          startResendTimer(data.expiresIn)
         } else {
-          setError('Invalid credentials')
+          router.push('/admin')
         }
+      } else {
+        setError(data.error || 'Login failed')
       }
     } catch (error) {
       setError('Network error. Please try again.')
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleOTPVerification = async () => {
+    setError('')
+    setIsLoading(true)
+
+    try {
+      const response = await fetch('/api/admin/auth/2fa-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username: credentials.username,
+          phone: credentials.phone,
+          otp: credentials.otp,
+          tempToken,
+          action: 'verify-otp'
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        router.push('/admin')
+      } else {
+        setError(data.error || 'OTP verification failed')
+      }
+    } catch (error) {
+      setError('Network error. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleResendOTP = async () => {
+    setError('')
+    setIsLoading(true)
+
+    try {
+      const response = await fetch('/api/admin/auth/2fa-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username: credentials.username,
+          password: credentials.password,
+          phone: credentials.phone,
+          action: 'password'
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.requiresOTP) {
+        setTempToken(data.tempToken)
+        startResendTimer(data.expiresIn)
+        setError('OTP resent successfully')
+        setTimeout(() => setError(''), 3000)
+      } else {
+        setError(data.error || 'Failed to resend OTP')
+      }
+    } catch (error) {
+      setError('Network error. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const startResendTimer = (seconds: number) => {
+    setResendTimer(seconds)
+    const timer = setInterval(() => {
+      setResendTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  const formatPhoneNumber = (phone: string) => {
+    // Format as 09XX XXX XXXX (11 digits)
+    if (phone.length === 11) {
+      return `${phone.slice(0, 4)} ${phone.slice(4, 7)} ${phone.slice(7)}`
+    }
+    return phone
   }
 
   return (
@@ -66,121 +168,175 @@ export default function AdminLogin() {
               Admin Login
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Choose your preferred login method
+              {step === 'password' ? 'Enter your credentials for 2FA login' : 'Enter the OTP sent to your phone'}
             </p>
           </div>
 
-          <div className="space-y-4">
-            {/* Login Method Selection */}
-            <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
-              <button
-                onClick={() => setUse2FA(false)}
-                className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
-                  !use2FA
-                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                }`}
-              >
-                <Key className="w-4 h-4 inline mr-2" />
-                Password Only
-              </button>
-              <button
-                onClick={() => setUse2FA(true)}
-                className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
-                  use2FA
-                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                }`}
-              >
-                <Smartphone className="w-4 h-4 inline mr-2" />
-                2FA Login
-              </button>
-            </div>
+          {step === 'password' && (
+            <form onSubmit={handlePasswordSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Username
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    value={credentials.username}
+                    onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter your username"
+                    required
+                  />
+                </div>
+              </div>
 
-            {use2FA ? (
-              <div className="text-center py-8">
-                <Smartphone className="w-16 h-16 text-blue-600 dark:text-blue-400 mx-auto mb-4" />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={credentials.password}
+                    onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
+                    className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter your password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Phone Number
+                </label>
+                <div className="relative">
+                  <Smartphone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="tel"
+                    value={credentials.phone}
+                    onChange={(e) => setCredentials({ ...credentials, phone: e.target.value })}
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="09XXXXXXXXX"
+                    maxLength={11}
+                    pattern="09[0-9]{9}"
+                    required
+                  />
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Enter your 11-digit mobile number for 2FA verification
+                </p>
+              </div>
+
+              {error && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                    <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isLoading || !credentials.username || !credentials.password || credentials.phone.length !== 11}
+                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Verifying...' : 'Send OTP'}
+              </button>
+
+              <div className="text-center">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  🔐 Two-factor authentication enabled for enhanced security
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  You will receive a 6-digit OTP via SMS after password verification
+                </p>
+              </div>
+            </form>
+          )}
+
+          {step === 'otp' && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <Smartphone className="w-12 h-12 text-blue-600 dark:text-blue-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                   Two-Factor Authentication
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                  Enhanced security with password + SMS OTP verification
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Enter the 6-digit code sent to {formatPhoneNumber(credentials.phone.replace(/(\d{4})(\d{3})(\d{4})/, '$1 $2 $3'))}
                 </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  OTP Code
+                </label>
+                <input
+                  type="text"
+                  value={credentials.otp}
+                  onChange={(e) => setCredentials({ ...credentials, otp: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-center text-2xl font-mono"
+                  placeholder="000000"
+                  maxLength={6}
+                  pattern="[0-9]{6}"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
                 <button
-                  onClick={() => router.push('/admin/login/2fa')}
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                  type="button"
+                  onClick={() => setStep('password')}
+                  className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                 >
-                  Continue with 2FA
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Login
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleResendOTP}
+                  disabled={resendTimer > 0 || isLoading}
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend OTP'}
                 </button>
               </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Username
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="text"
-                      value={credentials.username}
-                      onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                      placeholder="Enter your username"
-                      required
-                    />
+
+              {error && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                    <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
                   </div>
                 </div>
+              )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={credentials.password}
-                      onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
-                      className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                      placeholder="Enter your password"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
+              <button
+                onClick={handleOTPVerification}
+                disabled={isLoading || credentials.otp.length !== 6}
+                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Verifying...' : 'Verify OTP'}
+              </button>
 
-                {error && (
-                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
-                      <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? 'Signing in...' : 'Sign In'}
-                </button>
-              </form>
-            )}
-          </div>
-
-          <div className="mt-6 text-center">
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {use2FA ? '2FA provides enhanced security with password + SMS verification' : 'Traditional login with username and password'}
-            </p>
-          </div>
+              <div className="text-center">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  OTP is valid for 5 minutes
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </motion.div>
     </div>

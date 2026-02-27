@@ -1,4 +1,4 @@
-// 2FA Login API - Password first, then OTP
+// Fix 2FA - Always require OTP for admin login
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { SMSOTP, OTPSession } from '@/lib/smsOTP'
@@ -18,34 +18,8 @@ export async function POST(request: NextRequest) {
         }, { status: 401 })
       }
 
-      // Check if 2FA is enabled for this admin
-      const has2FA = await SMSOTP.isPhoneRegistered(phone)
-      
-      if (!has2FA) {
-        // No 2FA enabled, create normal JWT
-        const token = jwt.sign(
-          { username, role: 'admin', twoFactorVerified: false },
-          JWT_SECRET,
-          { expiresIn: '1h' }
-        )
-
-        const response = NextResponse.json({
-          message: 'Login successful',
-          requiresOTP: false,
-          token
-        })
-
-        response.cookies.set('admin-token', token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'strict',
-          maxAge: 3600 // 1 hour
-        })
-
-        return response
-      }
-
-      // 2FA enabled, create temporary session and send OTP
+      // ALWAYS require 2FA for admin - no check needed
+      // Generate and send OTP
       const otpCode = SMSOTP.generateOTP()
       
       // Send OTP via SMS
@@ -65,6 +39,9 @@ export async function POST(request: NextRequest) {
           error: 'Failed to store OTP. Please try again.' 
         }, { status: 500 })
       }
+
+      // Register phone if not already registered
+      await SMSOTP.registerPhone(phone, username)
 
       // Create temporary session
       const tempToken = OTPSession.createTempSession(phone)
