@@ -1,34 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifySecureJWT, SecurityLogger, secureAPI } from '@/lib/security'
 
-export async function GET(request: NextRequest) {
+export const GET = secureAPI(async (request: NextRequest) => {
   try {
-    // Check for admin-token cookie
-    const cookieHeader = request.cookies.get('admin-token')?.value || ''
+    const token = request.cookies.get('admin-token')?.value || ''
     
-    if (!cookieHeader) {
-      return NextResponse.json({ authenticated: false })
+    if (!token) {
+      SecurityLogger.logAuthAttempt('unknown', false, request.headers.get('user-agent') || 'unknown')
+      return NextResponse.json({ 
+        authenticated: false,
+        error: 'No token provided'
+      })
     }
-    
-    // Verify JWT token
-    const { default: jwt } = await import('jsonwebtoken')
-    const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-change-in-production'
-    
+
     try {
-      const decoded = jwt.verify(cookieHeader, JWT_SECRET) as any
+      const decoded = verifySecureJWT(token)
+      
+      SecurityLogger.logAuthAttempt(decoded.username, true, request.headers.get('user-agent') || 'unknown')
+      
       return NextResponse.json({ 
         authenticated: true,
-        user: { username: decoded.username, role: decoded.role }
+        user: { 
+          username: decoded.username, 
+          role: decoded.role 
+        }
       })
     } catch (error: any) {
+      SecurityLogger.logAuthAttempt('unknown', false, request.headers.get('user-agent') || 'unknown')
       return NextResponse.json({ 
         authenticated: false,
         error: 'Invalid token'
       })
     }
   } catch (error: any) {
+    SecurityLogger.log('error', 'auth_check_error', { 
+      error: error.message,
+      ip: request.headers.get('x-forwarded-for') || 'unknown'
+    })
     return NextResponse.json({ 
       authenticated: false,
       error: 'Server error'
     })
   }
-}
+})
