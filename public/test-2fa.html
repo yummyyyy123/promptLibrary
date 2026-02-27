@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2FA API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 2FA API Test</h1>
+        <p>Test the 2FA login API directly</p>
+        
+        <div class="test-section">
+            <h3>Step 1: Password Verification</h3>
+            <input type="text" id="username" placeholder="Username (admin)" value="admin">
+            <input type="password" id="password" placeholder="Password (admin123)" value="admin123">
+            <input type="tel" id="phone" placeholder="Phone (09948655838)" value="09948655838">
+            <button onclick="testPassword()">Send OTP</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>Step 2: OTP Verification</h3>
+            <input type="text" id="otp" placeholder="6-digit OTP" maxlength="6">
+            <input type="text" id="tempToken" placeholder="Temp Token">
+            <button onclick="testOTP()">Verify OTP</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>Debug Info</h3>
+            <button onclick="checkDebug()">Check Debug Endpoint</button>
+            <button onclick="clearResults()">Clear Results</button>
+        </div>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        
+        async function testPassword() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const phone = document.getElementById('phone').value;
+            
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/auth/2fa-login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'password',
+                        username,
+                        password,
+                        phone
+                    })
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <div class="result">
+                        <h4>✅ Password Verification Response:</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+                
+                if (data.requiresOTP) {
+                    document.getElementById('tempToken').value = data.tempToken;
+                    resultDiv.innerHTML += `
+                        <div class="result">
+                            <h4>📱 OTP Sent! Check console for code:</h4>
+                            <p>Temp Token: ${data.tempToken}</p>
+                            <p>Phone Last 4: ${data.phoneLastFour}</p>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Error:</h4>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            }
+        }
+        
+        async function testOTP() {
+            const otp = document.getElementById('otp').value;
+            const tempToken = document.getElementById('tempToken').value;
+            const phone = document.getElementById('phone').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/auth/2fa-login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'verify-otp',
+                        username,
+                        password,
+                        phone,
+                        otp,
+                        tempToken
+                    })
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `
+                    <div class="result">
+                        <h4>✅ OTP Verification Response:</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+                
+                if (data.token) {
+                    resultDiv.innerHTML += `
+                        <div class="result">
+                            <h4>🎉 Success! Token received:</h4>
+                            <pre>${data.token}</pre>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Error:</h4>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            }
+        }
+        
+        async function checkDebug() {
+            try {
+                const response = await fetch(`${API_BASE}/api/debug/request`);
+                const data = await response.json();
+                
+                document.getElementById('result').innerHTML = `
+                    <div class="result">
+                        <h4>🔍 Debug Info:</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <div class="error">
+                        <h4>❌ Debug Error:</h4>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            }
+        }
+        
+        function clearResults() {
+            document.getElementById('result').innerHTML = '';
+        }
+    </script>
+</body>
+</html>
