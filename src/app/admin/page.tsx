@@ -249,7 +249,7 @@ export default function AdminPanel() {
                             {submission.category}
                           </span>
                           <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {new Date(submission.created_at).toLocaleDateString()}
+                            {new Date(submission.submittedAt).toLocaleDateString()}
                           </span>
                         </div>
                         <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
