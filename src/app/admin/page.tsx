@@ -19,6 +19,10 @@ export default function AdminPanel() {
   const [rejectionId, setRejectionId] = useState('')
   const router = useRouter()
 
+  useEffect(() => {
+    fetchData()
+  }, [])
+
   const fetchData = async () => {
     try {
       setLoading(true)
