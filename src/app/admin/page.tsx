@@ -295,55 +295,17 @@ export default function AdminPanel() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 max-w-md w-full"
-          >
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Reject Submission</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Are you sure you want to reject "{selectedSubmission.title}"?
-            </p>
-            <textarea
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              placeholder="Reason for rejection (optional)"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-              rows={3}
-            />
-            <div className="flex justify-end gap-3 mt-4">
-              <button
-                onClick={() => {
-                  setShowRejectModal(false)
-                  setSelectedSubmission(null)
-                  setRejectionReason('')
-                  setRejectionId('')
-                }}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleReject}
-                disabled={!rejectionReason.trim()}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Reject Submission
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
-      {/* Submission Detail Modal */}
-      {selectedSubmission && !showRejectModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
             className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto"
           >
             <div className="flex justify-between items-start mb-4">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{selectedSubmission.title}</h3>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Reject Submission</h3>
               <button
-                onClick={() => setSelectedSubmission(null)}
+                onClick={() => {
+                  setSelectedSubmission(null)
+                  setShowRejectModal(false)
+                  setRejectionReason('')
+                  setRejectionId('')
+                }}
                 className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
               >
                 <X className="w-6 h-6" />
@@ -367,10 +329,29 @@ export default function AdminPanel() {
                 </div>
               </div>
             </div>
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                onClick={() => {
+                  setShowRejectModal(false)
+                  setSelectedSubmission(null)
+                  setRejectionReason('')
+                  setRejectionId('')
+                }}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReject}
+                disabled={!rejectionReason.trim()}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Reject Submission
+              </button>
+            </div>
           </motion.div>
         </div>
       )}
-    </div>
     </>
   )
 }
