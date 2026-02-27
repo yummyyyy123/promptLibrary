@@ -1,5 +1,9 @@
 // Better authentication check for admin panel
 export const isAuthenticated = async () => {
+  if (typeof window === 'undefined') {
+    return false
+  }
+  
   try {
     // Check if we have a valid admin token
     const response = await fetch('/api/admin/auth/check', {
@@ -19,10 +23,12 @@ export const isAuthenticated = async () => {
 
 // Redirect to login if not authenticated
 export const requireAuth = () => {
-  if (typeof window !== 'undefined') {
+  const checkAuth = async () => {
     const authenticated = await isAuthenticated()
     if (!authenticated) {
       window.location.href = '/admin/login'
     }
   }
+  
+  checkAuth()
 }

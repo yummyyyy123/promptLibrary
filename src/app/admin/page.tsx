@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { Search, Check, X, Eye, TrendingUp, Clock, Users, FileText, Filter, ChevronDown, LogOut, Shield, AlertCircle } from 'lucide-react'
 import { PromptSubmission, SubmissionStats } from '@/types/database'
 import { useRouter } from 'next/navigation'
+import { requireAuth } from '@/lib/auth-utils'
 
 export default function AdminPanel() {
   const [submissions, setSubmissions] = useState<PromptSubmission[]>([])
@@ -20,23 +21,7 @@ export default function AdminPanel() {
 
   useEffect(() => {
     // Check authentication
-    const checkAuth = async () => {
-      try {
-        const response = await fetch('/api/admin/auth/check')
-        const data = await response.json()
-        
-        if (!data.authenticated) {
-          router.push('/admin/login')
-          return false
-        }
-        return true
-      } catch (error) {
-        console.error('Auth check failed:', error)
-        return false
-      }
-    }
-    
-    checkAuth()
+    requireAuth()
   }, [router])
 
   const fetchData = async () => {
