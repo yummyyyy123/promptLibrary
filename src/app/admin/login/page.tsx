@@ -49,6 +49,11 @@ export default function AdminLogin() {
           setPhoneLastFour(data.phoneLastFour)
           setStep('otp')
           startResendTimer(data.expiresIn)
+          
+          // Show OTP code in alert (for testing)
+          if (typeof window !== 'undefined') {
+            alert(`📱 OTP Code: Check browser console for OTP code`)
+          }
         } else {
           router.push('/admin')
         }

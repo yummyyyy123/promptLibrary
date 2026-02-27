@@ -22,8 +22,16 @@ export class SMSOTP {
   static async sendOTP(phone: string, otp: string): Promise<boolean> {
     try {
       // In production, use SMS service like Twilio, Vonage, etc.
-      // For now, we'll simulate SMS sending
-      console.log(`📱 SMS OTP: Sending ${otp} to ${phone}`)
+      // For now, we'll simulate SMS sending with prominent logging
+      console.log(`📱 SMS OTP: ${otp} to ${phone}`)
+      console.log(`🔍 OTP Details: Code=${otp}, Phone=${phone}, Valid=5min`)
+      console.log(`⏰ Generated at: ${new Date().toISOString()}`)
+      
+      // Also log to browser console for visibility
+      if (typeof window !== 'undefined') {
+        console.log(`📱 OTP SENT: ${otp}`)
+        console.log(`📱 TO PHONE: ${phone}`)
+      }
       
       // Simulate SMS API call
       const response = await this.simulateSMSAPI(phone, otp)
