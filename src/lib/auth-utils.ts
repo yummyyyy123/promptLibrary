@@ -27,8 +27,29 @@ export const requireAuth = () => {
     const authenticated = await isAuthenticated()
     if (!authenticated) {
       window.location.href = '/admin/login'
+      return false
     }
+    return true
   }
   
-  checkAuth()
+  // Only call once to prevent infinite loops
+  let isChecking = false
+  return async () => {
+    if (isChecking) return false
+    isChecking = true
+    
+    try {
+      const authenticated = await isAuthenticated()
+      isChecking = false
+      if (!authenticated) {
+        window.location.href = '/admin/login'
+        return false
+      }
+      return true
+    } catch (error) {
+      isChecking = false
+      console.error('Auth check failed:', error)
+      return false
+    }
+  }
 }
