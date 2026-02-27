@@ -17,11 +17,27 @@ export default function AdminPanel() {
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [rejectionReason, setRejectionReason] = useState('')
   const [rejectionId, setRejectionId] = useState('')
+  const [approvedPrompts, setApprovedPrompts] = useState<any[]>([])
+  const [loadingApproved, setLoadingApproved] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
     fetchData()
+    fetchApprovedPrompts()
   }, [])
+
+  const fetchApprovedPrompts = async () => {
+    try {
+      setLoadingApproved(true)
+      const response = await fetch('/api/admin/prompts')
+      const data = await response.json()
+      setApprovedPrompts(data.prompts)
+    } catch (error) {
+      console.error('Error fetching approved prompts:', error)
+    } finally {
+      setLoadingApproved(false)
+    }
+  }
 
   const fetchData = async () => {
     try {
@@ -82,6 +98,27 @@ export default function AdminPanel() {
       }
     } catch (error) {
       console.error('Error rejecting submission:', error)
+    }
+  }
+
+  const handleDeletePrompt = async (promptId: string) => {
+    try {
+      const response = await fetch('/api/admin/prompts', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          promptId
+        })
+      })
+
+      if (response.ok) {
+        fetchData()
+        setSelectedSubmission(null)
+      }
+    } catch (error) {
+      console.error('Error deleting prompt:', error)
     }
   }
 
@@ -301,6 +338,71 @@ export default function AdminPanel() {
               </div>
             </div>
           )}
+
+          {/* Approved Prompts Section */}
+          <div className="mt-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Approved Prompts</h2>
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                Manage published prompts
+              </div>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              {!loadingApproved && approvedPrompts.length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-gray-600 dark:text-gray-400">No approved prompts yet</p>
+                </div>
+              )}
+              
+              {loadingApproved && approvedPrompts.length === 0 && (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-r-2 border-t-2 border-l-2 border-emerald-500"></div>
+                </div>
+              )}
+              
+              {!loadingApproved && approvedPrompts.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {approvedPrompts.map((prompt, index) => (
+                    <motion.div
+                      key={prompt.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-lg transition-shadow"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{prompt.title}</h3>
+                          <p className="text-gray-600 dark:text-gray-400 mb-4">{prompt.description}</p>
+                          <div className="flex items-center gap-2 mb-4">
+                            <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-medium rounded-full">
+                              {prompt.category}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {new Date(prompt.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                            <p className="text-sm text-gray-700 dark:text-gray-300 font-mono">{prompt.prompt}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 ml-4">
+                          <button
+                            onClick={() => handleDeletePrompt(prompt.id)}
+                            className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 rounded-lg transition-colors"
+                            title="Delete prompt"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
