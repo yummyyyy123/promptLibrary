@@ -31,7 +31,9 @@ export default function AdminLogin() {
       const response = await fetch('/api/admin/auth/2fa-login', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Origin': window.location.origin,
+          'Referer': window.location.href
         },
         body: JSON.stringify({
           username: credentials.username,
@@ -108,7 +110,9 @@ export default function AdminLogin() {
       const response = await fetch('/api/admin/auth/2fa-login', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Origin': window.location.origin,
+          'Referer': window.location.href
         },
         body: JSON.stringify({
           username: credentials.username,
