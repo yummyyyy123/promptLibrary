@@ -1,37 +1,50 @@
-// Submissions API - Handle prompt submissions with Supabase integration
+// DEBUG SUBMISSIONS - Show exactly what's happening
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   try {
-    console.log('🔍 SUBMISSION: New prompt submission...')
+    console.log('🔍 DEBUG: Submission request received')
     
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.SUPABASE_SERVICE_KEY
     
+    console.log('🔍 DEBUG: Environment variables:')
+    console.log('  - NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl ? 'SET' : 'NOT SET')
+    console.log('  - SUPABASE_SERVICE_KEY:', supabaseKey ? 'SET' : 'NOT SET')
+    
     if (!supabaseUrl || !supabaseKey) {
-      console.error('💥 SUBMISSION: Supabase credentials missing!')
+      console.error('💥 DEBUG: Supabase credentials missing!')
       return NextResponse.json({ 
         error: 'Supabase credentials not configured',
-        source: 'error'
+        debug: {
+          supabaseUrl: !!supabaseUrl,
+          supabaseKey: !!supabaseKey,
+          env: process.env.NODE_ENV,
+          vercelEnv: process.env.VERCEL_ENV
+        }
       }, { status: 500 })
     }
     
     const body = await request.json()
-    console.log('🔍 SUBMISSION: Received data:', body)
+    console.log('🔍 DEBUG: Request body:', JSON.stringify(body, null, 2))
     
     // Validate required fields
     const requiredFields = ['title', 'description', 'category', 'prompt']
-    for (const field of requiredFields) {
-      if (!body[field]) {
-        return NextResponse.json(
-          { error: `Missing required field: ${field}` },
-          { status: 400 }
-        )
-      }
+    const missingFields = requiredFields.filter(field => !body[field])
+    
+    if (missingFields.length > 0) {
+      console.error('💥 DEBUG: Missing fields:', missingFields)
+      return NextResponse.json(
+        { error: `Missing required fields: ${missingFields.join(', ')}` },
+        { status: 400 }
+      )
     }
     
+    console.log('🔍 DEBUG: Creating Supabase client...')
     const { createClient } = await import('@supabase/supabase-js')
     const supabase = createClient(supabaseUrl, supabaseKey)
+    
+    console.log('🔍 DEBUG: Inserting into Supabase...')
     
     // Insert into prompts table
     const { data, error } = await supabase
@@ -51,78 +64,45 @@ export async function POST(request: Request) {
       .select()
       .single()
     
+    console.log('🔍 DEBUG: Supabase response:')
+    console.log('  - Data:', data)
+    console.log('  - Error:', error)
+    
     if (error) {
-      console.error('💥 SUBMISSION: Supabase error:', error)
+      console.error('💥 DEBUG: Supabase error:', error)
       return NextResponse.json({ 
         error: 'Failed to submit prompt',
         details: error.message,
-        source: 'supabase_error'
+        debug: {
+          supabaseError: error,
+          requestBody: body
+        }
       }, { status: 500 })
     }
     
-    console.log('✅ SUBMISSION: Success!', data)
+    console.log('✅ DEBUG: Submission successful!')
     
     return NextResponse.json({
       message: 'Prompt submitted successfully',
       submission: data,
-      source: 'supabase_success'
+      debug: {
+        success: true,
+        insertedId: data?.id
+      }
     })
     
   } catch (error: any) {
-    console.error('💥 SUBMISSION: Critical error:', error)
+    console.error('💥 DEBUG: Critical error:', error)
+    console.error('💥 DEBUG: Error stack:', error.stack)
+    
     return NextResponse.json({ 
       error: 'Failed to submit prompt',
       details: error.message,
-      source: 'critical_error'
-    }, { status: 500 })
-  }
-}
-
-export async function GET(request: Request) {
-  try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.SUPABASE_SERVICE_KEY
-    
-    if (!supabaseUrl || !supabaseKey) {
-      return NextResponse.json({ 
-        error: 'Supabase credentials not configured',
-        submissions: []
-      }, { status: 500 })
-    }
-    
-    const { searchParams } = new URL(request.url)
-    const status = searchParams.get('status')
-    
-    const { createClient } = await import('@supabase/supabase-js')
-    const supabase = createClient(supabaseUrl, supabaseKey)
-    
-    let query = supabase
-      .from('prompts')
-      .select('*')
-      .order('created_at', { ascending: false })
-    
-    // Filter by status if provided
-    if (status) {
-      query = query.eq('status', status)
-    }
-    
-    const { data: submissions, error } = await query
-    
-    if (error) {
-      console.error('💥 GET SUBMISSIONS: Supabase error:', error)
-      return NextResponse.json({ 
-        error: 'Failed to fetch submissions',
-        submissions: []
-      }, { status: 500 })
-    }
-    
-    return NextResponse.json({ submissions: submissions || [] })
-    
-  } catch (error: any) {
-    console.error('💥 GET SUBMISSIONS: Critical error:', error)
-    return NextResponse.json({ 
-      error: 'Failed to fetch submissions',
-      submissions: []
+      debug: {
+        errorType: error.constructor.name,
+        errorMessage: error.message,
+        errorStack: error.stack
+      }
     }, { status: 500 })
   }
 }
