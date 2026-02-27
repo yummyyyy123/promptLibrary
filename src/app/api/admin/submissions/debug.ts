@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
         debug: {
           authenticated: false,
           reason: 'invalid_jwt',
-          jwtError: jwtError.message
+          jwtError: jwtError instanceof Error ? jwtError.message : 'Unknown JWT error'
         }
       }, { status: 401 })
     }
