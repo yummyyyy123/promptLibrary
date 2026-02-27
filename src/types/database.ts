@@ -9,13 +9,13 @@ export interface PromptSubmission {
   prompt: string
   variables: string[]
   status: 'pending' | 'approved' | 'rejected'
-  submittedBy: string
-  submittedAt: string
-  reviewedBy?: string
-  reviewedAt?: string
-  rejectionReason?: string
-  usageCount?: number
-  isFavorite?: boolean
+  submitted_by: string
+  submitted_at: string
+  reviewed_by?: string
+  reviewed_at?: string
+  rejection_reason?: string
+  usage_count?: number
+  is_favorite?: boolean
 }
 
 export interface AdminUser {
