@@ -1,39 +1,8 @@
+// ADMIN SUBMISSIONS - Use Supabase database
 import { NextRequest, NextResponse } from 'next/server'
-import { PromptSubmission } from '@/types/database'
-import fs from 'fs'
-import path from 'path'
 import jwt from 'jsonwebtoken'
 
-const SUBMISSIONS_FILE = path.join(process.cwd(), 'data', 'submissions.json')
-const PROMPTS_FILE = path.join(process.cwd(), 'data', 'prompts.json')
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-
-// Helper functions
-function getSubmissions(): PromptSubmission[] {
-  try {
-    const data = fs.readFileSync(SUBMISSIONS_FILE, 'utf-8')
-    return JSON.parse(data)
-  } catch (error) {
-    return []
-  }
-}
-
-function saveSubmissions(submissions: PromptSubmission[]) {
-  fs.writeFileSync(SUBMISSIONS_FILE, JSON.stringify(submissions, null, 2))
-}
-
-function getPrompts() {
-  try {
-    const data = fs.readFileSync(PROMPTS_FILE, 'utf-8')
-    return JSON.parse(data)
-  } catch (error) {
-    return { prompts: [] }
-  }
-}
-
-function savePrompts(promptsData: any) {
-  fs.writeFileSync(PROMPTS_FILE, JSON.stringify(promptsData, null, 2))
-}
 
 // JWT authentication middleware
 function authenticate(request: NextRequest): boolean {
@@ -63,63 +32,105 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { action, submissionId, reason } = body
 
-    const submissions = getSubmissions()
-    const submissionIndex = submissions.findIndex(s => s.id === submissionId)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_KEY
 
-    if (submissionIndex === -1) {
+    if (!supabaseUrl || !supabaseKey) {
       return NextResponse.json(
-        { error: 'Submission not found' },
-        { status: 404 }
+        { error: 'Supabase credentials not configured' },
+        { status: 500 }
       )
     }
 
-    const submission = submissions[submissionIndex]
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(supabaseUrl, supabaseKey)
 
     if (action === 'approve') {
-      // Update submission status
-      submissions[submissionIndex] = {
-        ...submission,
-        status: 'approved',
-        reviewedAt: new Date().toISOString(),
-        reviewedBy: 'admin'
+      // Update submission status to approved
+      const { data: submission, error: updateError } = await supabase
+        .from('submissions')
+        .update({
+          status: 'approved',
+          reviewed_by: 'admin',
+          reviewed_at: new Date().toISOString()
+        })
+        .eq('id', submissionId)
+        .select()
+        .single()
+
+      if (updateError) {
+        console.error('💥 ADMIN: Update submission error:', updateError)
+        return NextResponse.json(
+          { error: 'Failed to update submission' },
+          { status: 500 }
+        )
       }
 
-      // Add to main prompts database
-      const promptsData = getPrompts()
-      const newPrompt = {
-        id: submission.id,
-        title: submission.title,
-        description: submission.description,
-        category: submission.category,
-        tags: submission.tags,
-        prompt: submission.prompt,
-        variables: submission.variables,
-        createdAt: submission.submittedAt,
-        usageCount: 0,
-        isFavorite: false
+      // Move to prompts table
+      const { data: prompt, error: insertError } = await supabase
+        .from('prompts')
+        .insert({
+          title: submission.title,
+          description: submission.description,
+          category: submission.category,
+          tags: submission.tags,
+          prompt: submission.prompt,
+          variables: submission.variables,
+          usage_count: 0,
+          is_favorite: false
+        })
+        .select()
+        .single()
+
+      if (insertError) {
+        console.error('💥 ADMIN: Insert prompt error:', insertError)
+        return NextResponse.json(
+          { error: 'Failed to add to prompts' },
+          { status: 500 }
+        )
       }
-      promptsData.prompts.push(newPrompt)
-      savePrompts(promptsData)
+
+      return NextResponse.json({
+        message: 'Submission approved successfully',
+        submission,
+        prompt
+      })
 
     } else if (action === 'reject') {
-      submissions[submissionIndex] = {
-        ...submission,
-        status: 'rejected',
-        reviewedAt: new Date().toISOString(),
-        reviewedBy: 'admin',
-        rejectionReason: reason || 'Rejected by admin'
+      // Update submission status to rejected
+      const { data, error } = await supabase
+        .from('submissions')
+        .update({
+          status: 'rejected',
+          reviewed_by: 'admin',
+          reviewed_at: new Date().toISOString(),
+          rejection_reason: reason || 'Rejected by admin'
+        })
+        .eq('id', submissionId)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('💥 ADMIN: Reject submission error:', error)
+        return NextResponse.json(
+          { error: 'Failed to reject submission' },
+          { status: 500 }
+        )
       }
+
+      return NextResponse.json({
+        message: 'Submission rejected successfully',
+        submission: data
+      })
     }
 
-    saveSubmissions(submissions)
-
-    return NextResponse.json({
-      message: `Submission ${action}d successfully`,
-      submission: submissions[submissionIndex]
-    })
+    return NextResponse.json(
+      { error: 'Invalid action' },
+      { status: 400 }
+    )
 
   } catch (error) {
-    console.error('Error managing submission:', error)
+    console.error('💥 ADMIN: Critical error:', error)
     return NextResponse.json(
       { error: 'Failed to manage submission' },
       { status: 500 }
@@ -139,40 +150,66 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
 
-    let submissions = getSubmissions()
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_KEY
+
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json(
+        { error: 'Supabase credentials not configured' },
+        { status: 500 }
+      )
+    }
+
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    let query = supabase
+      .from('submissions')
+      .select('*')
+      .order('submitted_at', { ascending: false })
 
     // Filter by status if provided
     if (status) {
-      submissions = submissions.filter(s => s.status === status)
+      query = query.eq('status', status)
+    }
+
+    const { data: submissions, error } = await query
+
+    if (error) {
+      console.error('💥 ADMIN: Fetch submissions error:', error)
+      return NextResponse.json(
+        { error: 'Failed to fetch submissions' },
+        { status: 500 }
+      )
     }
 
     // Calculate stats
     const stats = {
-      total: submissions.length,
-      pending: submissions.filter(s => s.status === 'pending').length,
-      approved: submissions.filter(s => s.status === 'approved').length,
-      rejected: submissions.filter(s => s.status === 'rejected').length,
-      thisWeek: submissions.filter(s => {
-        const submissionDate = new Date(s.submittedAt)
+      total: submissions?.length || 0,
+      pending: submissions?.filter(s => s.status === 'pending').length || 0,
+      approved: submissions?.filter(s => s.status === 'approved').length || 0,
+      rejected: submissions?.filter(s => s.status === 'rejected').length || 0,
+      thisWeek: submissions?.filter(s => {
+        const submissionDate = new Date(s.submitted_at)
         const weekAgo = new Date()
         weekAgo.setDate(weekAgo.getDate() - 7)
         return submissionDate >= weekAgo
-      }).length,
-      thisMonth: submissions.filter(s => {
-        const submissionDate = new Date(s.submittedAt)
+      }).length || 0,
+      thisMonth: submissions?.filter(s => {
+        const submissionDate = new Date(s.submitted_at)
         const monthAgo = new Date()
         monthAgo.setMonth(monthAgo.getMonth() - 1)
         return submissionDate >= monthAgo
-      }).length
+      }).length || 0
     }
 
     return NextResponse.json({
-      submissions,
+      submissions: submissions || [],
       stats
     })
 
   } catch (error) {
-    console.error('Error fetching admin data:', error)
+    console.error('💥 ADMIN: GET critical error:', error)
     return NextResponse.json(
       { error: 'Failed to fetch admin data' },
       { status: 500 }
