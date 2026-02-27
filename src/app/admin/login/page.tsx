@@ -13,7 +13,7 @@ export default function AdminLogin() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  const [useOTP, setUseOTP] = useState(false)
+  const [use2FA, setUse2FA] = useState(false)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,9 +22,9 @@ export default function AdminLogin() {
     setIsLoading(true)
 
     try {
-      if (useOTP) {
-        // Redirect to SMS OTP login
-        router.push('/admin/login/sms-otp')
+      if (use2FA) {
+        // Redirect to 2FA login
+        router.push('/admin/login/2fa')
       } else {
         // Traditional login (for backward compatibility)
         const response = await fetch('/api/admin/auth/check', {
@@ -74,43 +74,43 @@ export default function AdminLogin() {
             {/* Login Method Selection */}
             <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
               <button
-                onClick={() => setUseOTP(false)}
+                onClick={() => setUse2FA(false)}
                 className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
-                  !useOTP
+                  !use2FA
                     ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm'
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
                 <Key className="w-4 h-4 inline mr-2" />
-                Password
+                Password Only
               </button>
               <button
-                onClick={() => setUseOTP(true)}
+                onClick={() => setUse2FA(true)}
                 className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
-                  useOTP
+                  use2FA
                     ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm'
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
                 <Smartphone className="w-4 h-4 inline mr-2" />
-                SMS OTP
+                2FA Login
               </button>
             </div>
 
-            {useOTP ? (
+            {use2FA ? (
               <div className="text-center py-8">
                 <Smartphone className="w-16 h-16 text-blue-600 dark:text-blue-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                  SMS OTP Login
+                  Two-Factor Authentication
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-                  Secure login with one-time password sent to your phone
+                  Enhanced security with password + SMS OTP verification
                 </p>
                 <button
-                  onClick={() => router.push('/admin/login/sms-otp')}
+                  onClick={() => router.push('/admin/login/2fa')}
                   className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
                 >
-                  Continue with SMS OTP
+                  Continue with 2FA
                 </button>
               </div>
             ) : (
@@ -178,7 +178,7 @@ export default function AdminLogin() {
 
           <div className="mt-6 text-center">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              {useOTP ? 'SMS OTP provides enhanced security for your admin account' : 'Traditional login with username and password'}
+              {use2FA ? '2FA provides enhanced security with password + SMS verification' : 'Traditional login with username and password'}
             </p>
           </div>
         </div>
