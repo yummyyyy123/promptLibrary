@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { Search, Check, X, Eye, TrendingUp, Clock, Users, FileText, Filter, ChevronDown, LogOut, Shield, AlertCircle } from 'lucide-react'
 import { PromptSubmission, SubmissionStats } from '@/types/database'
 import { useRouter } from 'next/navigation'
-import { requireAuth } from '@/lib/auth-utils'
+import { checkAuthStatus, logout } from '@/lib/simple-auth'
 
 export default function AdminPanel() {
   const [submissions, setSubmissions] = useState<PromptSubmission[]>([])
@@ -21,7 +21,7 @@ export default function AdminPanel() {
 
   useEffect(() => {
     // Check authentication
-    requireAuth()
+    checkAuthStatus()
   }, [router])
 
   const fetchData = async () => {
