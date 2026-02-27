@@ -463,6 +463,16 @@ export default function AdminPanel() {
                   <p className="text-sm text-gray-700 dark:text-gray-300 font-mono">{selectedSubmission.prompt}</p>
                 </div>
               </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Rejection Reason</p>
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Please provide a reason for rejection..."
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  rows={3}
+                />
+              </div>
             </div>
             <div className="flex justify-end gap-3 mt-4">
               <button
