@@ -6,6 +6,9 @@ export async function GET() {
     const response = await fetch('http://localhost:3000/api/prompts')
     const data = await response.json()
     
+    // Force rebuild trigger - small change
+    const rebuildTime = new Date().toISOString()
+    
     return NextResponse.json({
       debug: 'Testing prompts API',
       promptsData: data,
@@ -14,7 +17,8 @@ export async function GET() {
         supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET' : 'NOT SET',
         supabaseKey: process.env.SUPABASE_SERVICE_KEY ? 'SET' : 'NOT SET',
         adminUsername: process.env.ADMIN_USERNAME ? 'SET' : 'NOT SET',
-        adminPassword: process.env.ADMIN_PASSWORD ? 'SET' : 'NOT SET'
+        adminPassword: process.env.ADMIN_PASSWORD ? 'SET' : 'NOT SET',
+        rebuildTime: rebuildTime
       }
     })
   } catch (error: any) {
