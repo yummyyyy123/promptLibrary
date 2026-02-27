@@ -2,12 +2,7 @@ import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
-    // Test prompts API with relative URL (works both local and production)
-    const promptsUrl = '/api/prompts'
-    const response = await fetch(promptsUrl)
-    const data = await response.json()
-    
-    // Test environment variables
+    // Test environment variables only - no API calls
     const environment = {
       supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET' : 'NOT SET',
       supabaseKey: process.env.SUPABASE_SERVICE_KEY ? 'SET' : 'NOT SET',
@@ -19,17 +14,12 @@ export async function GET() {
     return NextResponse.json({
       message: 'Environment check completed',
       environment,
-      promptsData: data,
-      promptsCount: data.prompts?.length || 0,
-      fetchUrl: promptsUrl,
-      fetchStatus: response.ok,
-      fetchError: response.ok ? null : response.statusText
+      timestamp: new Date().toISOString()
     })
   } catch (error: any) {
     return NextResponse.json({
-      error: 'Debug failed',
+      error: 'Environment check failed',
       message: error.message,
-      fetchError: error.message,
       timestamp: new Date().toISOString()
     })
   }
