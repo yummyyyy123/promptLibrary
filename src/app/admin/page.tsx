@@ -122,6 +122,24 @@ export default function AdminPanel() {
     }
   }
 
+  const handleDeleteAllApproved = async () => {
+    try {
+      const response = await fetch('/api/admin/prompts/delete-all', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        fetchApprovedPrompts()
+        setSelectedSubmission(null)
+      }
+    } catch (error) {
+      console.error('Error deleting all approved prompts:', error)
+    }
+  }
+
   const handleLogout = async () => {
     try {
       await fetch('/api/admin/auth', { method: 'DELETE' })
@@ -343,8 +361,18 @@ export default function AdminPanel() {
           <div className="mt-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Approved Prompts</h2>
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                Manage published prompts
+              <div className="flex items-center gap-4">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Manage published prompts
+                </div>
+                <button
+                  onClick={handleDeleteAllApproved}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={approvedPrompts.length === 0}
+                  title="Delete all approved prompts"
+                >
+                  Delete All Approved
+                </button>
               </div>
             </div>
             
