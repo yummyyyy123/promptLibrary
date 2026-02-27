@@ -22,14 +22,15 @@ export default function AdminPanel() {
     // Check authentication
     const checkAuth = async () => {
       try {
-        const response = await fetch('/api/admin/submissions')
+        const response = await fetch('/api/admin/auth')
         if (!response.ok) {
           router.push('/admin/login')
-          return
+          return false
         }
-        fetchData()
+        return true
       } catch (error) {
-        router.push('/admin/login')
+        console.error('Auth check failed:', error)
+        return false
       }
     }
     
