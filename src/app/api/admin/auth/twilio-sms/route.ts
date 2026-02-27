@@ -4,20 +4,44 @@ import { SMSOTP } from '@/lib/smsOTP'
 
 export async function POST(request: NextRequest) {
   try {
+    // Add CORS headers and handle host validation
+    const origin = request.headers.get('origin') || ''
+    const host = request.headers.get('host') || ''
+    
+    console.log(`🌐 Twilio SMS Request: origin=${origin}, host=${host}`)
+    
     const { phone } = await request.json()
 
     if (!phone) {
       return NextResponse.json({ 
         error: 'Phone number required' 
-      }, { status: 400 })
+      }, { 
+        status: 400,
+        headers: {
+          'Access-Control-Allow-Origin': origin || '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Allow-Credentials': 'true'
+        }
+      })
     }
+
+    console.log(`📱 Processing SMS for phone: ${phone}`)
 
     // Validate phone number format
     const phoneRegex = /^09\d{9}$/
     if (!phoneRegex.test(phone)) {
       return NextResponse.json({ 
         error: 'Invalid phone number format. Use 09XXXXXXXXX format (11 digits).' 
-      }, { status: 400 })
+      }, { 
+        status: 400,
+        headers: {
+          'Access-Control-Allow-Origin': origin || '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Allow-Credentials': 'true'
+        }
+      })
     }
 
     // Generate OTP
@@ -35,7 +59,15 @@ export async function POST(request: NextRequest) {
     if (!accountSid || !authToken || !twilioPhone) {
       return NextResponse.json({ 
         error: 'Twilio not configured. Missing environment variables.' 
-      }, { status: 500 })
+      }, { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': origin || '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Allow-Credentials': 'true'
+        }
+      })
     }
 
     // Import Twilio (server-side)
@@ -62,6 +94,14 @@ export async function POST(request: NextRequest) {
         messageId: message.sid,
         status: message.status,
         otp: otp // Return OTP for testing
+      }, {
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': origin || '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Allow-Credentials': 'true'
+        }
       })
 
     } catch (error: any) {
@@ -70,12 +110,28 @@ export async function POST(request: NextRequest) {
         error: 'Failed to send SMS via Twilio',
         details: error.message,
         otp: otp // Return OTP for testing even if SMS fails
-      }, { status: 500 })
+      }, { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': origin || '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Allow-Credentials': 'true'
+        }
+      })
     }
   } catch (error: any) {
     console.error('SMS send error:', error)
     return NextResponse.json({ 
-      error: 'Server error' 
-    }, { status: 500 })
+        error: 'Server error' 
+      }, { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': origin || '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Allow-Credentials': 'true'
+        }
+      })
   }
 }
