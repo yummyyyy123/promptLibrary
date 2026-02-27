@@ -134,8 +134,8 @@ export default function SMSOTPLogin() {
   }
 
   const formatPhoneNumber = (phone: string) => {
-    // Format as 09XX XXX XXXX
-    if (phone.length === 10) {
+    // Format as 09XX XXX XXXX (11 digits)
+    if (phone.length === 11) {
       return `${phone.slice(0, 4)} ${phone.slice(4, 7)} ${phone.slice(7)}`
     }
     return phone
@@ -175,14 +175,14 @@ export default function SMSOTPLogin() {
                     value={credentials.phone}
                     onChange={(e) => setCredentials({ ...credentials, phone: e.target.value })}
                     className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    placeholder="09XXXXXXXX"
-                    maxLength={10}
+                    placeholder="09XXXXXXXXX"
+                    maxLength={11}
                     pattern="09[0-9]{9}"
                     required
                   />
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Enter your 10-digit mobile number (09XXXXXXXX format)
+                  Enter your 11-digit mobile number (09XXXXXXXXX format)
                 </p>
               </div>
 
@@ -197,7 +197,7 @@ export default function SMSOTPLogin() {
 
               <button
                 type="submit"
-                disabled={isLoading || credentials.phone.length !== 10}
+                disabled={isLoading || credentials.phone.length !== 11}
                 className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? 'Sending OTP...' : 'Send OTP'}

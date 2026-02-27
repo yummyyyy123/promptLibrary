@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     // Validate phone number format (Philippines format)
     const phoneRegex = /^09\d{9}$/
     if (!phoneRegex.test(phone)) {
-      return NextResponse.json({ error: 'Invalid phone number format. Use 09XXXXXXXX format.' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid phone number format. Use 09XXXXXXXXX format (11 digits).' }, { status: 400 })
     }
 
     if (action === 'send') {
