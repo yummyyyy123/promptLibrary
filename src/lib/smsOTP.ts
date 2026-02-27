@@ -21,21 +21,47 @@ export class SMSOTP {
   // Send OTP via SMS (using Twilio or similar service)
   static async sendOTP(phone: string, otp: string): Promise<boolean> {
     try {
-      // In production, use SMS service like Twilio, Vonage, etc.
-      // For now, we'll simulate SMS sending with prominent logging
-      console.log(`📱 SMS OTP: ${otp} to ${phone}`)
-      console.log(`🔍 OTP Details: Code=${otp}, Phone=${phone}, Valid=5min`)
-      console.log(`⏰ Generated at: ${new Date().toISOString()}`)
-      
-      // Also log to browser console for visibility
-      if (typeof window !== 'undefined') {
-        console.log(`📱 OTP SENT: ${otp}`)
-        console.log(`📱 TO PHONE: ${phone}`)
+      // Check if Twilio is configured
+      const accountSid = process.env.TWILIO_ACCOUNT_SID
+      const authToken = process.env.TWILIO_AUTH_TOKEN
+      const twilioPhone = process.env.TWILIO_PHONE_NUMBER
+
+      if (accountSid && authToken && twilioPhone) {
+        // Use real Twilio service
+        console.log(`📱 Sending SMS via Twilio to ${phone}`)
+        console.log(`🔍 OTP Code: ${otp}`)
+        console.log(`⏰ Generated at: ${new Date().toISOString()}`)
+        
+        // Import Twilio dynamically (server-side only)
+        const twilio = require('twilio')(accountSid, authToken)
+        
+        const message = await twilio.messages.create({
+          body: `Your OTP is: ${otp}. Valid for 5 minutes. Do not share this code.`,
+          from: twilioPhone,
+          to: phone
+        })
+        
+        console.log('✅ Twilio SMS sent successfully')
+        console.log(`📝 Message SID: ${message.sid}`)
+        console.log(`📱 Status: ${message.status}`)
+        
+        return message.status === 'queued' || message.status === 'sent'
+      } else {
+        // Fallback to simulation when Twilio not configured
+        console.log('⚠️ Twilio not configured, using simulation')
+        console.log(`📱 SMS OTP: ${otp} to ${phone}`)
+        console.log(`🔍 OTP Details: Code=${otp}, Phone=${phone}, Valid=5min`)
+        console.log(`⏰ Generated at: ${new Date().toISOString()}`)
+        
+        // Also log to browser console for visibility
+        if (typeof window !== 'undefined') {
+          console.log(`📱 OTP SENT: ${otp}`)
+          console.log(`📱 TO PHONE: ${phone}`)
+        }
+        
+        const response = await this.simulateSMSAPI(phone, otp)
+        return response.success
       }
-      
-      // Simulate SMS API call
-      const response = await this.simulateSMSAPI(phone, otp)
-      return response.success
     } catch (error) {
       console.error('Error sending SMS OTP:', error)
       return false

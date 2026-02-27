@@ -38,10 +38,21 @@ export async function POST(request: NextRequest) {
       // Generate and send OTP
       const otpCode = SMSOTP.generateOTP()
       
-      // Send OTP via SMS
-      const smsSent = await SMSOTP.sendOTP(phone, otpCode)
+      // Send OTP via SMS (using Twilio)
+      const smsSent = await fetch('/api/admin/auth/twilio-sms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Origin': origin || '*',
+          'Referer': `https://${host}`
+        },
+        body: JSON.stringify({
+          phone,
+          otp: otpCode
+        })
+      })
       
-      if (!smsSent) {
+      if (!smsSent.ok) {
         return NextResponse.json({ 
           error: 'Failed to send OTP. Please try again.' 
         }, { status: 500 })

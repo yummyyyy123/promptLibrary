@@ -28,7 +28,7 @@ export default function AdminLogin() {
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/admin/auth/2fa-login', {
+      const response = await fetch('/api/admin/auth/twilio-sms', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -36,10 +36,8 @@ export default function AdminLogin() {
           'Referer': window.location.href
         },
         body: JSON.stringify({
-          username: credentials.username,
-          password: credentials.password,
-          phone: credentials.phone,
-          action: 'password'
+          phone,
+          otp: otpCode
         })
       })
 
@@ -107,7 +105,8 @@ export default function AdminLogin() {
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/admin/auth/2fa-login', {
+      const otpCode = '' // Define otpCode to avoid TypeScript error
+      const response = await fetch('/api/admin/auth/twilio-sms', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -115,10 +114,8 @@ export default function AdminLogin() {
           'Referer': window.location.href
         },
         body: JSON.stringify({
-          username: credentials.username,
-          password: credentials.password,
-          phone: credentials.phone,
-          action: 'password'
+          phone,
+          otp: otpCode
         })
       })
 

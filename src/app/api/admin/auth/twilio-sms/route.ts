@@ -1,0 +1,71 @@
+// Real Twilio SMS Integration
+import { NextRequest, NextResponse } from 'next/server'
+import { SMSOTP } from '@/lib/smsOTP'
+
+export async function POST(request: NextRequest) {
+  try {
+    const { phone, otp } = await request.json()
+
+    if (!phone || !otp) {
+      return NextResponse.json({ 
+        error: 'Phone number and OTP required' 
+      }, { status: 400 })
+    }
+
+    // Validate phone number format
+    const phoneRegex = /^09\d{9}$/
+    if (!phoneRegex.test(phone)) {
+      return NextResponse.json({ 
+        error: 'Invalid phone number format. Use 09XXXXXXXXX format (11 digits).' 
+      }, { status: 400 })
+    }
+
+    // Twilio configuration
+    const accountSid = process.env.TWILIO_ACCOUNT_SID
+    const authToken = process.env.TWILIO_AUTH_TOKEN
+    const twilioPhone = process.env.TWILIO_PHONE_NUMBER
+
+    if (!accountSid || !authToken || !twilioPhone) {
+      return NextResponse.json({ 
+        error: 'Twilio not configured. Missing environment variables.' 
+      }, { status: 500 })
+    }
+
+    // Import Twilio (server-side)
+    const twilio = require('twilio')(accountSid, authToken)
+
+    try {
+      console.log(`📱 Sending SMS via Twilio to ${phone}`)
+      console.log(`🔍 OTP Code: ${otp}`)
+      
+      const message = await twilio.messages.create({
+        body: `Your OTP is: ${otp}. Valid for 5 minutes. Do not share this code.`,
+        from: twilioPhone,
+        to: phone
+      })
+
+      console.log('✅ Twilio SMS sent successfully')
+      console.log(`📝 Message SID: ${message.sid}`)
+      console.log(`📱 Status: ${message.status}`)
+
+      return NextResponse.json({
+        success: true,
+        message: 'SMS sent successfully via Twilio',
+        messageId: message.sid,
+        status: message.status
+      })
+
+    } catch (error: any) {
+      console.error('❌ Twilio SMS failed:', error)
+      return NextResponse.json({ 
+        error: 'Failed to send SMS via Twilio',
+        details: error.message
+      }, { status: 500 })
+    }
+  } catch (error: any) {
+    console.error('SMS send error:', error)
+    return NextResponse.json({ 
+      error: 'Server error' 
+    }, { status: 500 })
+  }
+}
