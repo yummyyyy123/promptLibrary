@@ -1,0 +1,42 @@
+[
+  {
+    "id": "1772172658189",
+    "title": "test123",
+    "description": "testtesttesttesttesttesttesttesttesttesttest",
+    "category": "Marketing",
+    "tags": [
+      "#linkedin"
+    ],
+    "prompt": "TESTESTTESTESTTESTESTTESTEST",
+    "variables": [
+      "TESTEST"
+    ],
+    "status": "approved",
+    "submittedBy": "william",
+    "submittedAt": "2026-02-27T06:10:58.189Z",
+    "usageCount": 0,
+    "isFavorite": false,
+    "reviewedAt": "2026-02-27T06:12:27.856Z",
+    "reviewedBy": "admin"
+  },
+  {
+    "id": "1772174343973",
+    "title": "rgs",
+    "description": "gsgs",
+    "category": "Marketing",
+    "tags": [
+      "#linkedin"
+    ],
+    "prompt": "grsg",
+    "variables": [
+      "TESTEST"
+    ],
+    "status": "approved",
+    "submittedBy": "william",
+    "submittedAt": "2026-02-27T06:39:03.973Z",
+    "usageCount": 0,
+    "isFavorite": false,
+    "reviewedAt": "2026-02-27T07:38:49.734Z",
+    "reviewedBy": "admin"
+  }
+]
