@@ -72,3 +72,69 @@ export async function GET() {
     }, { status: 500 })
   }
 }
+
+export async function POST(request: Request) {
+  try {
+    console.log('🔍 SUBMISSION: New prompt submission...')
+    
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_KEY
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('💥 SUBMISSION: Supabase credentials missing!')
+      return NextResponse.json({ 
+        error: 'Supabase credentials not configured',
+        source: 'error'
+      }, { status: 500 })
+    }
+    
+    const body = await request.json()
+    console.log('🔍 SUBMISSION: Received data:', body)
+    
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(supabaseUrl, supabaseKey)
+    
+    // Insert into prompts table
+    const { data, error } = await supabase
+      .from('prompts')
+      .insert({
+        title: body.title,
+        description: body.description,
+        category: body.category,
+        tags: body.tags || [],
+        prompt: body.prompt,
+        variables: body.variables || [],
+        status: 'pending',
+        submitted_by: 'anonymous',
+        usage_count: 0,
+        is_favorite: false
+      })
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('💥 SUBMISSION: Supabase error:', error)
+      return NextResponse.json({ 
+        error: 'Failed to submit prompt',
+        details: error.message,
+        source: 'supabase_error'
+      }, { status: 500 })
+    }
+    
+    console.log('✅ SUBMISSION: Success!', data)
+    
+    return NextResponse.json({
+      message: 'Prompt submitted successfully',
+      prompt: data,
+      source: 'supabase_success'
+    })
+    
+  } catch (error: any) {
+    console.error('💥 SUBMISSION: Critical error:', error)
+    return NextResponse.json({ 
+      error: 'Failed to submit prompt',
+      details: error.message,
+      source: 'critical_error'
+    }, { status: 500 })
+  }
+}
