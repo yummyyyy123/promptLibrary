@@ -5,17 +5,33 @@ import { SMSOTP, OTPSession } from '@/lib/smsOTP'
 
 export async function POST(request: NextRequest) {
   try {
+    // Add CORS headers and handle host validation
+    const origin = request.headers.get('origin') || ''
+    const host = request.headers.get('host') || ''
+    
+    console.log(`🌐 Request headers: origin=${origin}, host=${host}`)
+    
     const { username, password, phone, action, otp, tempToken } = await request.json()
     const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
     const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin'
     const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'
+
+    console.log(`📝 Request data: action=${action}, username=${username}, phone=${phone}`)
 
     if (action === 'password') {
       // Step 1: Verify username and password
       if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
         return NextResponse.json({ 
           error: 'Invalid credentials' 
-        }, { status: 401 })
+        }, { 
+          status: 401,
+          headers: {
+            'Access-Control-Allow-Origin': origin || '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            'Access-Control-Allow-Credentials': 'true'
+          }
+        })
       }
 
       // ALWAYS require 2FA for admin - no check needed
@@ -52,6 +68,14 @@ export async function POST(request: NextRequest) {
         tempToken,
         phoneLastFour: phone.slice(-4),
         expiresIn: 300 // 5 minutes
+      }, {
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': origin || '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Allow-Credentials': 'true'
+        }
       })
 
     } else if (action === 'verify-otp') {
@@ -110,6 +134,14 @@ export async function POST(request: NextRequest) {
         message: '2FA verification successful',
         requiresOTP: false,
         token
+      }, {
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': origin || '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Allow-Credentials': 'true'
+        }
       })
 
       response.cookies.set('admin-token', token, {
