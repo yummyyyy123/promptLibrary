@@ -416,17 +416,7 @@ export default function AdminPanel() {
           >
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Reject Submission</h3>
-              <button
-                onClick={() => {
-                  setSelectedSubmission(null)
-                  setShowRejectModal(false)
-                  setRejectionReason('')
-                  setRejectionId('')
-                }}
-                className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
-              >
-                <X className="w-6 h-6" />
-              </button>
+              {/* No close button - only reject or cancel */}
             </div>
             <div className="space-y-4">
               <div>
@@ -448,12 +438,7 @@ export default function AdminPanel() {
             </div>
             <div className="flex justify-end gap-3 mt-4">
               <button
-                onClick={() => {
-                  setShowRejectModal(false)
-                  setSelectedSubmission(null)
-                  setRejectionReason('')
-                  setRejectionId('')
-                }}
+                onClick={() => setShowRejectModal(false)}
                 className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
                 Cancel
