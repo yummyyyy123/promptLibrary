@@ -154,13 +154,10 @@ export default function AdminLogin() {
               </motion.button>
             </form>
 
-            {/* Demo Credentials */}
-            <div className="mt-6 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
-              <p className="text-sm text-emerald-700 dark:text-emerald-300 font-medium mb-2">Admin Credentials:</p>
-              <div className="text-xs text-emerald-600 dark:text-emerald-400 space-y-1">
-                <p>Username: <span className="font-mono bg-emerald-100 dark:bg-emerald-800 px-2 py-1 rounded">root</span></p>
-                <p>Password: <span className="font-mono bg-emerald-100 dark:bg-emerald-800 px-2 py-1 rounded">r00t</span></p>
-              </div>
+            <div className="text-center mt-6">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Contact administrator for login credentials
+              </p>
             </div>
           </div>
         </div>
