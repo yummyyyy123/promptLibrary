@@ -2,20 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-
-// Simple admin credentials (in production, use a proper database)
-const ADMIN_CREDENTIALS = {
-  username: 'root',
-  password: 'r00t'
-}
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-change-in-production'
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'root'
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'r00t'
 
 export async function POST(request: NextRequest) {
   try {
     const { username, password } = await request.json()
 
     // Validate credentials
-    if (username !== ADMIN_CREDENTIALS.username) {
+    if (username !== ADMIN_USERNAME) {
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
@@ -23,8 +19,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check password (in production, compare with bcrypt hash)
-    const isValidPassword = password === 'root' // Simple comparison for demo
-    // In production: const isValidPassword = await bcrypt.compare(password, ADMIN_CREDENTIALS.password)
+    const isValidPassword = password === ADMIN_PASSWORD
+    // In production: const isValidPassword = await bcrypt.compare(password, ADMIN_PASSWORD)
 
     if (!isValidPassword) {
       return NextResponse.json(

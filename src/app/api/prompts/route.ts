@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY
 
 export async function GET() {
+  // If Supabase environment variables are missing, use JSON fallback
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.log('Supabase environment variables not found, using JSON fallback')
+    return getPromptsFromJSON()
+  }
+
   try {
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
     const { data, error } = await supabase
       .from('prompts')
       .select('*')
