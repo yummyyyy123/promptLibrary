@@ -31,9 +31,26 @@ export default function TestDashboard() {
   const runTests = async (testType: 'all' | 'smoke' | 'security' | 'pipeline' = 'all') => {
     setLoading(true)
     try {
+      console.log(`🧪 Running ${testType} tests...`)
       const endpoint = testType === 'all' ? '/api/test/pipeline' : `/api/test/${testType}`
-      const response = await fetch(endpoint)
+      console.log(`📍 Endpoint: ${endpoint}`)
+      
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        }
+      })
+      
+      console.log(`📊 Response status: ${response.status}`)
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
       const data = await response.json()
+      console.log(`📋 Response data:`, data)
       
       if (testType === 'all') {
         setResults(data.results)
@@ -60,10 +77,38 @@ export default function TestDashboard() {
       }
       
       setLastRun(new Date().toLocaleTimeString())
+      console.log(`✅ Tests completed successfully`)
     } catch (error) {
-      console.error('Test error:', error)
+      console.error('❌ Test error:', error)
+      
+      // Show user-friendly error
+      if (error instanceof Error) {
+        alert(`Test failed: ${error.message}`)
+      } else {
+        alert('Test failed: Unknown error occurred')
+      }
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Simple test function to verify API is working
+  const testAPI = async () => {
+    try {
+      console.log('🔍 Testing API connectivity...')
+      const response = await fetch('/api/test/smoke')
+      console.log('📊 Smoke test response:', response.status)
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log('📋 Smoke test data:', data)
+        alert('API is working! Check console for details.')
+      } else {
+        alert(`API error: ${response.status}`)
+      }
+    } catch (error) {
+      console.error('❌ API test error:', error)
+      alert('API test failed. Check console for details.')
     }
   }
 
@@ -138,7 +183,15 @@ export default function TestDashboard() {
                 <p className="text-sm font-medium">{lastRun || 'Never'}</p>
               </div>
               <button
-                onClick={() => runTests('pipeline')}
+                onClick={testAPI}
+                disabled={loading}
+                className="flex items-center gap-2 px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors disabled:opacity-50 text-sm"
+              >
+                <Activity className="w-4 h-4" />
+                Test API
+              </button>
+              <button
+                onClick={() => runTests('all')}
                 disabled={loading}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
               >
