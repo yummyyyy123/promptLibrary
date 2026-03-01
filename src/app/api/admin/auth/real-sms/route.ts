@@ -67,33 +67,40 @@ export async function POST(request: NextRequest) {
 }
 
 async function trySendSMS(phone: string, otp: string) {
-  // Skip failed providers and go directly to working fallback
-  console.log('📱 Using direct SMS service...')
-  
-  try {
-    const result = await sendFallbackSMS(phone, otp)
-    
-    if (result && result.success) {
-      console.log('✅ SMS service working successfully')
-      return {
-        success: true,
-        message: 'SMS service working successfully',
-        messageId: 'fallback-' + Date.now(),
-        provider: 'Direct SMS',
-        error: null
+  const providers = [
+    { name: 'Twilio', func: sendTwilioSMS },
+    { name: 'Vonage', func: sendVonageSMS },
+    { name: 'AWS SNS', func: sendAWSSNSSMS },
+    { name: 'Fallback', func: sendFallbackSMS }
+  ]
+
+  for (const provider of providers) {
+    try {
+      console.log(`📱 Trying ${provider.name}...`)
+      const result = await provider.func(phone, otp)
+
+      if (result && result.success) {
+        console.log(`✅ ${provider.name} SMS sent successfully`)
+        return {
+          success: true,
+          message: `${provider.name} SMS sent successfully`,
+          messageId: result.messageId,
+          provider: provider.name,
+          error: null
+        }
       }
+    } catch (error: any) {
+      console.log(`❌ ${provider.name} failed: ${error.message}`)
     }
-  } catch (error: any) {
-    console.log('❌ Direct SMS failed:', error.message)
   }
 
-  console.log('❌ SMS service failed')
+  console.log('❌ All SMS providers failed')
   return {
     success: false,
-    message: 'SMS service failed - OTP generated for testing',
+    message: 'All SMS providers failed - OTP generated for testing',
     messageId: null,
     provider: null,
-    error: 'SMS service unavailable'
+    error: 'All SMS services unavailable'
   }
 }
 
