@@ -28,30 +28,67 @@ export default function AdminLogin() {
     // Remove any spaces, dashes, or other non-numeric characters
     const cleaned = phone.replace(/[^\d]/g, '')
     
-    // If starts with 09 and has 11 digits total, convert to +63
+    // Limit to 15 digits max
+    if (cleaned.length > 15) {
+      throw new Error('Phone number cannot exceed 15 digits')
+    }
+    
+    // If starts with +639 and has 12 digits after +, convert properly
+    if (phone.startsWith('+639') && cleaned.length === 12) {
+      return phone // Already in correct format
+    }
+    
+    // If starts with 639 and has 12 digits, add +
+    if (cleaned.startsWith('639') && cleaned.length === 12) {
+      return '+' + cleaned
+    }
+    
+    // If starts with 09 and has 11 digits, convert to +63
     if (cleaned.startsWith('09') && cleaned.length === 11) {
       return '+63' + cleaned.substring(1) // Remove 0 and add +63
     }
     
-    // If already starts with 63 and has 12 digits, add +
-    if (cleaned.startsWith('63') && cleaned.length === 12) {
-      return '+' + cleaned
+    // If already has +63, validate length
+    if (phone.startsWith('+63') && cleaned.length === 12) {
+      return phone // Already in correct format
     }
     
-    // If already has +63, return as is
-    if (cleaned.startsWith('639') && cleaned.length === 12) {
+    // If starts with 63 and has 12 digits, add +
+    if (cleaned.startsWith('63') && cleaned.length === 12) {
       return '+' + cleaned
     }
     
     return phone // Return original if no conversion needed
   }
 
-  // Validate Philippine phone number format
+  // Validate Philippine phone number format - max 15 digits
   const validatePhoneNumber = (phone: string): boolean => {
     const cleaned = phone.replace(/[^\d]/g, '')
     
-    // Accept 09xxxxxxxxx (11 digits) or +63xxxxxxxxx (13 digits with +)
-    return /^09\d{9}$/.test(cleaned) || /^\+?63\d{10}$/.test(cleaned)
+    // Max 15 digits
+    if (cleaned.length > 15) {
+      return false
+    }
+    
+    // Accept various Philippine formats:
+    // +639xxxxxxxxx (13 chars total, 12 digits)
+    // 639xxxxxxxxx (12 digits)
+    // 09xxxxxxxxx (11 digits)
+    // +63xxxxxxxxx (13 chars total, 12 digits) 
+    // 63xxxxxxxxx (12 digits)
+    
+    return (
+      // +639xxxxxxxxx (13 chars: + and 12 digits)
+      (phone.startsWith('+639') && cleaned.length === 12) ||
+      // 639xxxxxxxxx (12 digits)
+      (cleaned.startsWith('639') && cleaned.length === 12) ||
+      // 09xxxxxxxxx (11 digits)
+      (cleaned.startsWith('09') && cleaned.length === 11) ||
+      // +63xxxxxxxxx (13 chars: + and 12 digits)
+      (phone.startsWith('+63') && cleaned.length === 12) ||
+      // 63xxxxxxxxx (12 digits)
+      (cleaned.startsWith('63') && cleaned.length === 12)
+    )
   }
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
@@ -62,7 +99,7 @@ export default function AdminLogin() {
     try {
       // Validate phone number format
       if (!validatePhoneNumber(credentials.phone)) {
-        setError('Please enter a valid Philippine phone number (09xxxxxxxxx or +63xxxxxxxxx)')
+        setError('Please enter a valid Philippine phone number (+639xxxxxxxxx, 639xxxxxxxxx, 09xxxxxxxxx, +63xxxxxxxxx, or 63xxxxxxxxx) - max 15 digits')
         setIsLoading(false)
         return
       }
@@ -155,7 +192,7 @@ export default function AdminLogin() {
     try {
       // Validate phone number format
       if (!validatePhoneNumber(credentials.phone)) {
-        setError('Please enter a valid Philippine phone number (09xxxxxxxxx or +63xxxxxxxxx)')
+        setError('Please enter a valid Philippine phone number (+639xxxxxxxxx, 639xxxxxxxxx, 09xxxxxxxxx, +63xxxxxxxxx, or 63xxxxxxxxx) - max 15 digits')
         setIsLoading(false)
         return
       }
@@ -304,9 +341,8 @@ export default function AdminLogin() {
                     value={credentials.phone}
                     onChange={(e) => setCredentials({ ...credentials, phone: e.target.value })}
                     className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    placeholder="09XXXXXXXXX"
-                    maxLength={11}
-                    pattern="09[0-9]{9}"
+                    placeholder="+639xxxxxxxxx, 639xxxxxxxxx, or 09xxxxxxxxx"
+                    maxLength={15}
                     required
                   />
                 </div>
