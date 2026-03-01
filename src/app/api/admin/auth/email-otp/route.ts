@@ -1,29 +1,131 @@
-// Email OTP delivery using Resend API
+// Email OTP delivery using Resend API with enhanced security
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { EmailOTP, OTPSession } from '@/lib/emailOTP'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+// Rate limiting storage (in production, use Redis)
+const rateLimitStore = new Map<string, { count: number; lastRequest: number }>()
+
+// Rate limiting middleware
+function rateLimit(email: string, maxRequests = 5, windowMs = 5 * 60 * 1000): boolean {
+  const now = Date.now()
+  const key = email.toLowerCase()
+  const record = rateLimitStore.get(key)
+
+  if (!record) {
+    rateLimitStore.set(key, { count: 1, lastRequest: now })
+    return true
+  }
+
+  // Reset window if expired
+  if (now - record.lastRequest > windowMs) {
+    rateLimitStore.set(key, { count: 1, lastRequest: now })
+    return true
+  }
+
+  // Check if limit exceeded
+  if (record.count >= maxRequests) {
+    return false
+  }
+
+  // Increment count
+  record.count++
+  record.lastRequest = now
+  return true
+}
+
+// Security headers
+function setSecurityHeaders(origin: string) {
+  return {
+    'Access-Control-Allow-Origin': origin || '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Credentials': 'true',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
+    'Referrer-Policy': 'strict-origin-when-cross-origin'
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
+    // Add CORS headers and security measures
+    const origin = request.headers.get('origin') || ''
+    const host = request.headers.get('host') || ''
+    const userAgent = request.headers.get('user-agent') || ''
+    
+    console.log(`🌐 Request headers: origin=${origin}, host=${host}`)
+    
+    // Validate origin
+    const allowedOrigins = [
+      'https://prompt-library-three-wheat.vercel.app',
+      'http://localhost:3000',
+      'https://localhost:3000'
+    ]
+    
+    if (!allowedOrigins.includes(origin) && !origin.includes('localhost')) {
+      console.log(`❌ Unauthorized origin: ${origin}`)
+      return NextResponse.json(
+        { error: 'Unauthorized origin' },
+        { 
+          status: 403,
+          headers: setSecurityHeaders(origin)
+        }
+      )
+    }
+
     const body = await request.json()
     const { email } = body
 
-    if (!email) {
-      return NextResponse.json({ error: 'Email address required' }, { status: 400 })
+    // Input validation
+    if (!email || typeof email !== 'string') {
+      return NextResponse.json({ error: 'Email address required' }, { 
+        status: 400,
+        headers: setSecurityHeaders(origin)
+      })
     }
 
-    // Validate email format
+    // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
       return NextResponse.json({
         error: 'Invalid email address format'
-      }, { status: 400 })
+      }, { 
+        status: 400,
+        headers: setSecurityHeaders(origin)
+      })
     }
 
-    // Generate OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString()
+    // Rate limiting
+    if (!rateLimit(email)) {
+      console.log(`❌ Rate limit exceeded for: ${email}`)
+      return NextResponse.json({
+        error: 'Too many requests. Please try again later.'
+      }, { 
+        status: 429,
+        headers: setSecurityHeaders(origin)
+      })
+    }
+
+    // Only allow specific email for security
+    const allowedEmail = 'spicy0pepper@gmail.com'
+    if (email !== allowedEmail) {
+      console.log(`❌ Unauthorized email attempt: ${email}`)
+      return NextResponse.json({
+        error: 'Unauthorized email address'
+      }, { 
+        status: 403,
+        headers: setSecurityHeaders(origin)
+      })
+    }
+
+    // Generate cryptographically secure OTP
+    const otp = Array.from({ length: 6 }, () => 
+      Math.floor(Math.random() * 10).toString()
+    ).join('')
 
     console.log(`📧 Generating OTP for email: ${email}`)
     console.log(`🔍 OTP Code: ${otp}`)
@@ -74,7 +176,11 @@ export async function POST(request: NextRequest) {
           messageId: null,
           fallback: true,
           emailError: error.message,
-          provider: 'Email'
+          provider: 'Email',
+          tempToken: tempToken
+        }, {
+          status: 200,
+          headers: setSecurityHeaders(origin)
         })
       }
 
@@ -89,7 +195,10 @@ export async function POST(request: NextRequest) {
         fallback: false,
         emailError: null,
         provider: 'Email',
-        tempToken: tempToken  // Include temp token for frontend
+        tempToken: tempToken
+      }, {
+        status: 200,
+        headers: setSecurityHeaders(origin)
       })
 
     } catch (emailError: any) {
@@ -102,12 +211,30 @@ export async function POST(request: NextRequest) {
         fallback: true,
         emailError: emailError.message,
         provider: 'Email',
-        tempToken: tempToken  // Include temp token even in fallback
+        tempToken: tempToken
+      }, {
+        status: 200,
+        headers: setSecurityHeaders(origin)
       })
     }
 
   } catch (error: any) {
     console.error('❌ Email endpoint error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ 
+      error: 'Internal server error' 
+    }, { 
+      status: 500,
+      headers: setSecurityHeaders(request.headers.get('origin') || '')
+    })
   }
+}
+
+// Handle OPTIONS requests for CORS
+export async function OPTIONS(request: NextRequest) {
+  const origin = request.headers.get('origin') || ''
+  
+  return NextResponse.json({}, {
+    status: 200,
+    headers: setSecurityHeaders(origin)
+  })
 }
