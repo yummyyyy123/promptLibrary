@@ -61,7 +61,7 @@ export default function AdminLogin() {
     return phone // Return original if no conversion needed
   }
 
-  // Validate Philippine phone number format - max 15 digits
+  // Validate Philippine phone number format - accept 12-13 digits
   const validatePhoneNumber = (phone: string): boolean => {
     // Allow empty input (user hasn't started typing yet)
     if (!phone || phone.trim() === '') {
@@ -75,21 +75,27 @@ export default function AdminLogin() {
       return false
     }
     
-    // For Philippine numbers, accept:
-    // - 11 digits (09xxxxxxxxx)
-    // - 12 digits (639xxxxxxxxx or 63xxxxxxxxx)
-    // - 12 digits with + prefix (+639xxxxxxxxx or +63xxxxxxxxx = 13 chars total)
+    // Accept 12-13 digit phone numbers
+    if (cleaned.length < 12 || cleaned.length > 13) {
+      return false
+    }
     
     console.log('📱 Validating phone:', phone, 'cleaned:', cleaned, 'length:', cleaned.length)
     
-    // Very permissive validation - accept any reasonable Philippine phone number
+    // Accept Philippine phone numbers:
+    // - 12 digits (639xxxxxxxxx or 63xxxxxxxxx)
+    // - 12 digits with + prefix (+639xxxxxxxxx or +63xxxxxxxxx = 13 chars total)
+    // - 13 digits (any valid Philippine format)
+    
     const isValid = (
-      // Standard Philippine mobile formats
-      cleaned.length === 11 && cleaned.startsWith('09') || // 09xxxxxxxxx
-      cleaned.length === 12 && (cleaned.startsWith('639') || cleaned.startsWith('63')) || // 639xxxxxxxxx or 63xxxxxxxxx
-      phone.length === 13 && (phone.startsWith('+639') || phone.startsWith('+63')) || // +639xxxxxxxxx or +63xxxxxxxxx
-      // Allow any 10+ digit number for flexibility
-      (cleaned.length >= 10 && cleaned.length <= 15)
+      // 12 digits starting with 639 or 63
+      (cleaned.length === 12 && (cleaned.startsWith('639') || cleaned.startsWith('63'))) ||
+      // 13 characters with + prefix
+      (phone.length === 13 && (phone.startsWith('+639') || phone.startsWith('+63'))) ||
+      // 13 digits starting with 9 (Philippine mobile)
+      (cleaned.length === 13 && cleaned.startsWith('9')) ||
+      // Any 12-13 digit number for flexibility
+      (cleaned.length >= 12 && cleaned.length <= 13)
     )
     
     console.log('📱 Phone validation result:', isValid)
