@@ -61,7 +61,7 @@ export default function AdminLogin() {
     return phone // Return original if no conversion needed
   }
 
-  // Validate email format - only accept msiqwerty08@gmail.com
+  // Validate email format - only accept spicy0pepper@gmail.com
   const validateEmail = (email: string): boolean => {
     // Allow empty input (user hasn't started typing yet)
     if (!email || email.trim() === '') {
@@ -71,7 +71,7 @@ export default function AdminLogin() {
     console.log('📧 Validating email:', email)
     
     // Only accept the specific email
-    const isValid = email === 'msiqwerty08@gmail.com'
+    const isValid = email === 'spicy0pepper@gmail.com'
     
     console.log('📧 Email validation result:', isValid)
     return isValid
@@ -85,7 +85,7 @@ export default function AdminLogin() {
     try {
       // Validate email format
       if (!validateEmail(credentials.email)) {
-        setError('Please enter the correct email address: msiqwerty08@gmail.com')
+        setError('Please enter the correct email address')
         setIsLoading(false)
         return
       }
@@ -174,7 +174,7 @@ export default function AdminLogin() {
     try {
       // Validate email format
       if (!validateEmail(credentials.email)) {
-        setError('Please enter the correct email address: msiqwerty08@gmail.com')
+        setError('Please enter the correct email address')
         setIsLoading(false)
         return
       }
@@ -319,7 +319,7 @@ export default function AdminLogin() {
                     value={credentials.email}
                     onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
                     className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    placeholder="msiqwerty08@gmail.com"
+                    placeholder="Enter your email address"
                     required
                   />
                 </div>
