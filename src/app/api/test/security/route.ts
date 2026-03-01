@@ -9,6 +9,8 @@ export async function GET(request: NextRequest) {
     summary: { passed: 0, failed: 0, total: 0, securityScore: 0 }
   }
 
+  console.log('🔍 Starting security tests...')
+
   try {
     // Test 1: Rate Limiting (Cooldown-based)
     try {
@@ -187,6 +189,7 @@ export async function GET(request: NextRequest) {
 
     // Test 5: Brute Force Protection
     try {
+      console.log('🔍 Testing brute force protection...')
       const testEmail = 'bruteforce@test.com'
       const correctOTP = '123456'
       
@@ -199,6 +202,7 @@ export async function GET(request: NextRequest) {
       
       for (let i = 0; i < 4; i++) {
         const result = await EmailOTP.verifyOTP(testEmail, `00000${i}`)
+        console.log(`📊 Attempt ${i+1} result: ${result}`)
         attempts++
         if (!result && i >= 2) {
           // Should be blocked after 3 attempts
@@ -209,8 +213,10 @@ export async function GET(request: NextRequest) {
       
       // Try correct OTP - should fail if blocked
       const finalResult = await EmailOTP.verifyOTP(testEmail, correctOTP)
+      console.log(`📊 Final correct OTP result: ${finalResult}`)
       
       const passed = blocked && !finalResult
+      console.log(`📊 Brute force test passed: ${passed}`)
       
       results.tests.push({
         name: 'Brute Force Protection',
@@ -222,6 +228,7 @@ export async function GET(request: NextRequest) {
       if (passed) results.summary.passed++
       else results.summary.failed++
     } catch (error: any) {
+      console.log('❌ Brute force test error:', error.message)
       results.tests.push({
         name: 'Brute Force Protection',
         status: 'FAIL',
@@ -233,18 +240,22 @@ export async function GET(request: NextRequest) {
 
     // Test 6: Session Security
     try {
+      console.log('🔍 Testing session security...')
       const testEmail = 'session@test.com'
       
       // Test session creation and validation
       const metrics = EmailOTP.getSecurityMetrics()
+      console.log(`📊 Security metrics:`, metrics)
       const hasMetrics = typeof metrics.totalOTPs === 'number'
       
       // Test cleanup functionality
       EmailOTP.cleanupExpiredOTPs()
       const metricsAfterCleanup = EmailOTP.getSecurityMetrics()
+      console.log(`📊 Metrics after cleanup:`, metricsAfterCleanup)
       const cleanupWorks = typeof metricsAfterCleanup.totalOTPs === 'number'
       
       const passed = hasMetrics && cleanupWorks
+      console.log(`📊 Session security test passed: ${passed}`)
       
       results.tests.push({
         name: 'Session Security',
@@ -256,6 +267,7 @@ export async function GET(request: NextRequest) {
       if (passed) results.summary.passed++
       else results.summary.failed++
     } catch (error: any) {
+      console.log('❌ Session security test error:', error.message)
       results.tests.push({
         name: 'Session Security',
         status: 'FAIL',
@@ -264,6 +276,8 @@ export async function GET(request: NextRequest) {
       })
       results.summary.failed++
     }
+
+    console.log(`📊 Security tests completed. Passed: ${results.summary.passed}, Failed: ${results.summary.failed}`)
 
     results.summary.total = results.summary.passed + results.summary.failed
     results.summary.securityScore = Math.round((results.summary.passed / results.summary.total) * 100)
