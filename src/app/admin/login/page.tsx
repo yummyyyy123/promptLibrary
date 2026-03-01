@@ -373,7 +373,7 @@ export default function AdminLogin() {
 
               <button
                 type="submit"
-                disabled={isLoading || !credentials.username || !credentials.password || credentials.phone.length !== 11}
+                disabled={isLoading || !credentials.username || !credentials.password || !validatePhoneNumber(credentials.phone)}
                 className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? 'Verifying...' : 'Send OTP'}
