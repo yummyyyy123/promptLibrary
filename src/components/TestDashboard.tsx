@@ -360,15 +360,15 @@ export default function TestDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Hacker Challenge Banner */}
-        <div className="bg-gradient-to-r from-purple-900 via-blue-900 to-indigo-900 rounded-2xl shadow-2xl p-8 mb-8 border border-purple-500/30 relative overflow-hidden">
+        <div className="bg-gradient-to-r from-purple-900 via-blue-900 to-indigo-900 rounded-2xl shadow-2xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-purple-500/30 relative overflow-hidden">
           {/* Animated background elements */}
           <div className="absolute inset-0 opacity-20">
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-green-400/20 to-blue-600/20 animate-pulse"></div>
-            <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-green-400/10 rounded-full blur-xl animate-pulse"></div>
-            <div className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-blue-400/10 rounded-full blur-xl animate-pulse delay-1000"></div>
+            <div className="absolute top-1/4 left-1/4 w-24 h-24 sm:w-32 sm:h-32 bg-green-400/10 rounded-full blur-xl animate-pulse"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-32 h-32 sm:w-40 sm:h-40 bg-blue-400/10 rounded-full blur-xl animate-pulse delay-1000"></div>
           </div>
           
           {/* Matrix rain effect overlay */}
@@ -378,39 +378,39 @@ export default function TestDashboard() {
           
           {/* Main content */}
           <div className="relative z-10 text-center">
-            <div className="flex items-center justify-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/50">
-                <Lock className="w-6 h-6 text-white" />
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-3 sm:gap-4 mb-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/50">
+                <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-green-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-green-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
                 HACK IT IF YOU CAN
               </h1>
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-500 rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/50">
-                <Shield className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-400 to-pink-500 rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/50">
+                <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
             </div>
             
-            <p className="text-xl text-white mb-6 font-bold">
+            <p className="text-lg sm:text-xl text-white mb-4 sm:mb-6 font-bold">
               Challenge our fortress - penetrate if you dare
             </p>
             
-            <div className="flex items-center justify-center gap-8 text-sm">
-              <div className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full border border-white/40">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-3 sm:gap-4 sm:gap-8 text-xs sm:text-sm">
+              <div className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full border border-white/40">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                 <span className="text-green-300 font-bold">Security Score: 100%</span>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full border border-white/40">
+              <div className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full border border-white/40">
                 <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
                 <span className="text-blue-300 font-bold">All Tests Passed</span>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full border border-white/40">
+              <div className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full border border-white/40">
                 <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
                 <span className="text-purple-300 font-bold">Production Ready</span>
               </div>
             </div>
             
             {/* Terminal-style decoration */}
-            <div className="mt-6 text-xs text-gray-300 font-mono font-bold">
+            <div className="mt-4 sm:mt-6 text-xs text-gray-300 font-mono font-bold">
               <span className="text-green-400">$</span> security-scan --mode=aggressive --target=production
               <span className="ml-2 text-gray-400">// All systems secured</span>
             </div>
