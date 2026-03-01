@@ -24,6 +24,18 @@ export default function AdminPanel() {
   useEffect(() => {
     fetchData()
     fetchApprovedPrompts()
+    
+    // Prevent back button access after logout
+    if (typeof window !== 'undefined') {
+      const preventBackButton = () => {
+        window.history.pushState(null, '', window.location.href)
+        window.addEventListener('popstate', function(event) {
+          window.history.pushState(null, '', window.location.href)
+        })
+      }
+      
+      preventBackButton()
+    }
   }, [])
 
   const fetchApprovedPrompts = async () => {
@@ -142,11 +154,33 @@ export default function AdminPanel() {
 
   const handleLogout = async () => {
     try {
+      // Clear local storage and session storage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('adminToken')
+        localStorage.removeItem('adminUser')
+        sessionStorage.clear()
+      }
+      
+      // Call logout API
       await fetch('/api/admin/auth', { method: 'DELETE' })
+      
+      // Redirect to login
       router.push('/admin/login')
+      
+      // Prevent back button after logout
+      if (typeof window !== 'undefined') {
+        window.history.pushState(null, '', '/admin/login')
+        window.addEventListener('popstate', function(event) {
+          window.history.pushState(null, '', '/admin/login')
+        })
+      }
     } catch (error) {
       console.error('Logout error:', error)
+      // Still redirect even if API fails
       router.push('/admin/login')
+      if (typeof window !== 'undefined') {
+        window.history.pushState(null, '', '/admin/login')
+      }
     }
   }
 
