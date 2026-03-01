@@ -63,6 +63,11 @@ export default function AdminLogin() {
 
   // Validate Philippine phone number format - max 15 digits
   const validatePhoneNumber = (phone: string): boolean => {
+    // Allow empty input (user hasn't started typing yet)
+    if (!phone || phone.trim() === '') {
+      return false
+    }
+    
     const cleaned = phone.replace(/[^\d]/g, '')
     
     // Max 15 digits
@@ -70,39 +75,25 @@ export default function AdminLogin() {
       return false
     }
     
-    // Allow any input that could be a valid phone number (more permissive)
-    // At minimum, must have at least 10 digits
-    if (cleaned.length < 10) {
-      return false
-    }
+    // For Philippine numbers, accept:
+    // - 11 digits (09xxxxxxxxx)
+    // - 12 digits (639xxxxxxxxx or 63xxxxxxxxx)
+    // - 12 digits with + prefix (+639xxxxxxxxx or +63xxxxxxxxx = 13 chars total)
     
     console.log('📱 Validating phone:', phone, 'cleaned:', cleaned, 'length:', cleaned.length)
     
-    // Accept various Philippine formats:
-    // +639xxxxxxxxx (13 chars total, 12 digits)
-    // 639xxxxxxxxx (12 digits)
-    // 09xxxxxxxxx (11 digits)
-    // +63xxxxxxxxx (13 chars total, 12 digits) 
-    // 63xxxxxxxxx (12 digits)
-    // Or any 10+ digit number that looks like a phone
-    
-    const isValidFormat = (
-      // +639xxxxxxxxx (13 chars: + and 12 digits)
-      (phone.startsWith('+639') && cleaned.length === 12) ||
-      // 639xxxxxxxxx (12 digits)
-      (cleaned.startsWith('639') && cleaned.length === 12) ||
-      // 09xxxxxxxxx (11 digits)
-      (cleaned.startsWith('09') && cleaned.length === 11) ||
-      // +63xxxxxxxxx (13 chars: + and 12 digits)
-      (phone.startsWith('+63') && cleaned.length === 12) ||
-      // 63xxxxxxxxx (12 digits)
-      (cleaned.startsWith('63') && cleaned.length === 12) ||
-      // Allow any Philippine-looking number with 10+ digits
-      (cleaned.length >= 10 && (cleaned.startsWith('9') || phone.startsWith('+')))
+    // Very permissive validation - accept any reasonable Philippine phone number
+    const isValid = (
+      // Standard Philippine mobile formats
+      cleaned.length === 11 && cleaned.startsWith('09') || // 09xxxxxxxxx
+      cleaned.length === 12 && (cleaned.startsWith('639') || cleaned.startsWith('63')) || // 639xxxxxxxxx or 63xxxxxxxxx
+      phone.length === 13 && (phone.startsWith('+639') || phone.startsWith('+63')) || // +639xxxxxxxxx or +63xxxxxxxxx
+      // Allow any 10+ digit number for flexibility
+      (cleaned.length >= 10 && cleaned.length <= 15)
     )
     
-    console.log('📱 Phone validation result:', isValidFormat)
-    return isValidFormat
+    console.log('📱 Phone validation result:', isValid)
+    return isValid
   }
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
