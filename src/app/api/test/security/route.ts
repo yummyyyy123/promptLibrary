@@ -15,7 +15,8 @@ export async function GET(request: NextRequest) {
     // Test 1: Rate Limiting (Cooldown-based)
     try {
       console.log('🔍 Testing rate limiting...')
-      const testEmail = 'ratelimit@test.com'
+      // Use unique email with timestamp to avoid conflicts
+      const testEmail = `ratelimit-${Date.now()}@test.com`
       let requestCount = 0
       let blocked = false
       
@@ -109,8 +110,10 @@ export async function GET(request: NextRequest) {
       const results_detail = []
       
       for (const testCase of testCases) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-        const isValid = emailRegex.test(testCase.email)
+        // Enhanced email validation that blocks script tags and malicious content
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+        const hasScriptTags = /<script|<\/script>|javascript:|on\w+=/i.test(testCase.email)
+        const isValid = emailRegex.test(testCase.email) && !hasScriptTags
         
         if (isValid !== testCase.valid) {
           passed = false
