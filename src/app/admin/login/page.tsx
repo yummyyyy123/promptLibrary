@@ -29,7 +29,7 @@ export default function AdminLogin() {
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/admin/auth/simple-sms', {
+      const response = await fetch('/api/admin/auth/real-sms', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -54,7 +54,11 @@ export default function AdminLogin() {
           
           // Show OTP code in alert (for testing)
           if (typeof window !== 'undefined') {
-            alert(`📱 OTP Code: ${data.otp} (Check console for details)`)
+            if (data.fallback) {
+              alert(`⚠️ SMS not configured - OTP: ${data.otp}\nProvider: ${data.provider || 'None'}\nError: ${data.smsError || 'Check Vercel environment variables'}`)
+            } else {
+              alert(`✅ SMS sent via ${data.provider}!\nMessage ID: ${data.messageId}\nCheck your phone for OTP`)
+            }
           }
         } else {
           setError(data.error || 'Failed to send OTP')
@@ -107,7 +111,7 @@ export default function AdminLogin() {
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/admin/auth/simple-sms', {
+      const response = await fetch('/api/admin/auth/real-sms', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
