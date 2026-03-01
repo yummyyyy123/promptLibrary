@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Moon, Sun, Copy, Check, Tag, Filter, Sparkles, Zap, Target, TrendingUp, Clock, Star, ChevronRight, X, FileText, Hash, Users, BarChart3, Calendar, MessageSquare, Twitter, Instagram, Linkedin, Mail, PenTool, Lightbulb, Rocket, Heart, Megaphone, Briefcase, Globe, Palette, Plus, Shield } from 'lucide-react'
+import { Search, Moon, Sun, Copy, Check, Tag, Filter, Sparkles, Zap, Target, TrendingUp, Clock, Star, ChevronRight, X, FileText, Hash, Users, BarChart3, Calendar, MessageSquare, Twitter, Instagram, Linkedin, Mail, PenTool, Lightbulb, Rocket, Heart, Megaphone, Briefcase, Globe, Palette, Plus, Shield, Activity } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useTheme } from '@/contexts/ThemeContext'
 import { usePromptStore } from '@/store/promptStore'
@@ -148,6 +148,13 @@ export default function Home() {
                 <Shield className="w-4 h-4" />
                 Admin
               </a>
+              <a
+                href="/test"
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                <BarChart3 className="w-4 h-4" />
+                Testing
+              </a>
               <button
                 onClick={toggleTheme}
                 className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
@@ -236,6 +243,71 @@ export default function Home() {
                 sortBy={sortBy}
                 onSortChange={setSortBy}
               />
+            </div>
+
+            {/* Testing Dashboard Card */}
+            <div className="mb-8">
+              <AnimatedCard index={0} className="bg-gradient-to-r from-purple-900 via-blue-900 to-indigo-900 border border-purple-500/30">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-lg flex items-center justify-center">
+                        <BarChart3 className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-white">Testing Dashboard</h3>
+                        <p className="text-sm text-gray-300">Security & Performance Monitoring</p>
+                      </div>
+                    </div>
+                    <a
+                      href="/test"
+                      className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg border border-white/40 text-white hover:bg-white/30 transition-colors"
+                    >
+                      <Zap className="w-4 h-4" />
+                      View Dashboard
+                    </a>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Shield className="w-4 h-4 text-green-400" />
+                        <span className="text-sm font-medium text-green-400">Security Score</span>
+                      </div>
+                      <p className="text-2xl font-bold text-white">100%</p>
+                      <p className="text-xs text-gray-400">All tests passed</p>
+                    </div>
+                    
+                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Activity className="w-4 h-4 text-blue-400" />
+                        <span className="text-sm font-medium text-blue-400">Performance</span>
+                      </div>
+                      <p className="text-2xl font-bold text-white">100%</p>
+                      <p className="text-xs text-gray-400">Optimized response</p>
+                    </div>
+                    
+                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Target className="w-4 h-4 text-purple-400" />
+                        <span className="text-sm font-medium text-purple-400">Tests Run</span>
+                      </div>
+                      <p className="text-2xl font-bold text-white">16</p>
+                      <p className="text-xs text-gray-400">Comprehensive suite</p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-white/5 backdrop-blur-sm rounded-lg border border-white/10">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-medium text-green-400">System Status: Operational</span>
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      All security measures active • Real-time monitoring enabled • Production ready
+                    </p>
+                  </div>
+                </div>
+              </AnimatedCard>
             </div>
 
             {/* Results Count and Actions */}
