@@ -1,6 +1,7 @@
 // Email OTP delivery using Resend API
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { EmailOTP } from '@/lib/emailOTP'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -26,6 +27,12 @@ export async function POST(request: NextRequest) {
 
     console.log(`📧 Generating OTP for email: ${email}`)
     console.log(`🔍 OTP Code: ${otp}`)
+
+    // Store OTP in EmailOTP system
+    const stored = await EmailOTP.storeOTP(email, otp)
+    if (!stored) {
+      console.log('⚠️ Failed to store OTP, but continuing...')
+    }
 
     // Send email using Resend
     try {
