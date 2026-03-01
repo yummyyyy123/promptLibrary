@@ -390,29 +390,29 @@ export default function TestDashboard() {
               </div>
             </div>
             
-            <p className="text-xl text-gray-300 mb-6 font-medium">
-              Test your skills against our security fortress
+            <p className="text-xl text-white mb-6 font-bold">
+              Challenge our fortress - penetrate if you dare
             </p>
             
             <div className="flex items-center justify-center gap-8 text-sm">
-              <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
+              <div className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full border border-white/40">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span className="text-green-400 font-medium">Security Score: 100%</span>
+                <span className="text-green-300 font-bold">Security Score: 100%</span>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
+              <div className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full border border-white/40">
                 <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                <span className="text-blue-400 font-medium">All Tests Passed</span>
+                <span className="text-blue-300 font-bold">All Tests Passed</span>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
+              <div className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full border border-white/40">
                 <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-                <span className="text-purple-400 font-medium">Production Ready</span>
+                <span className="text-purple-300 font-bold">Production Ready</span>
               </div>
             </div>
             
             {/* Terminal-style decoration */}
-            <div className="mt-6 text-xs text-gray-500 font-mono">
+            <div className="mt-6 text-xs text-gray-300 font-mono font-bold">
               <span className="text-green-400">$</span> security-scan --mode=aggressive --target=production
-              <span className="ml-2 text-gray-600">// All systems secured</span>
+              <span className="ml-2 text-gray-400">// All systems secured</span>
             </div>
           </div>
           
