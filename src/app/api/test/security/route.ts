@@ -16,17 +16,22 @@ export async function GET(request: NextRequest) {
       let requestCount = 0
       let blocked = false
       
+      console.log('🔍 Testing rate limiting...')
+      
       // First request should work
       const firstStored = await EmailOTP.storeOTP(testEmail, '123456')
+      console.log(`📊 First request result: ${firstStored}`)
       if (firstStored) requestCount++
       
       // Immediate second request should be blocked (1-minute cooldown)
       const secondStored = await EmailOTP.storeOTP(testEmail, '123457')
+      console.log(`📊 Second request result: ${secondStored}`)
       if (!secondStored) {
         blocked = true
       }
       
       const passed = firstStored && !secondStored // First works, second blocked
+      console.log(`📊 Rate limiting test passed: ${passed}`)
       
       results.tests.push({
         name: 'Rate Limiting',
@@ -38,6 +43,7 @@ export async function GET(request: NextRequest) {
       if (passed) results.summary.passed++
       else results.summary.failed++
     } catch (error: any) {
+      console.log('❌ Rate limiting test error:', error.message)
       results.tests.push({
         name: 'Rate Limiting',
         status: 'FAIL',
@@ -130,6 +136,7 @@ export async function GET(request: NextRequest) {
 
     // Test 4: Security Headers Check
     try {
+      console.log('🔍 Testing security headers...')
       const url = new URL(request.url)
       const testUrl = `${url.protocol}//${url.host}/api/admin/auth/email-otp`
       
@@ -137,6 +144,8 @@ export async function GET(request: NextRequest) {
         method: 'OPTIONS',
         headers: { 'Origin': url.origin }
       })
+      
+      console.log(`📊 Security headers response status: ${response.status}`)
       
       const headers = {
         'access-control-allow-origin': response.headers.get('access-control-allow-origin'),
@@ -146,11 +155,15 @@ export async function GET(request: NextRequest) {
         'referrer-policy': response.headers.get('referrer-policy')
       }
       
+      console.log(`📊 Security headers found:`, headers)
+      
       const requiredHeaders = ['x-content-type-options', 'x-frame-options']
       const passed = requiredHeaders.every(header => {
         const headerKey = header as keyof typeof headers
         return headers[headerKey]
       })
+      
+      console.log(`📊 Security headers test passed: ${passed}`)
       
       results.tests.push({
         name: 'Security Headers',
@@ -162,6 +175,7 @@ export async function GET(request: NextRequest) {
       if (passed) results.summary.passed++
       else results.summary.failed++
     } catch (error: any) {
+      console.log('❌ Security headers test error:', error.message)
       results.tests.push({
         name: 'Security Headers',
         status: 'FAIL',
