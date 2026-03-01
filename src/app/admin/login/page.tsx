@@ -70,14 +70,23 @@ export default function AdminLogin() {
       return false
     }
     
+    // Allow any input that could be a valid phone number (more permissive)
+    // At minimum, must have at least 10 digits
+    if (cleaned.length < 10) {
+      return false
+    }
+    
+    console.log('📱 Validating phone:', phone, 'cleaned:', cleaned, 'length:', cleaned.length)
+    
     // Accept various Philippine formats:
     // +639xxxxxxxxx (13 chars total, 12 digits)
     // 639xxxxxxxxx (12 digits)
     // 09xxxxxxxxx (11 digits)
     // +63xxxxxxxxx (13 chars total, 12 digits) 
     // 63xxxxxxxxx (12 digits)
+    // Or any 10+ digit number that looks like a phone
     
-    return (
+    const isValidFormat = (
       // +639xxxxxxxxx (13 chars: + and 12 digits)
       (phone.startsWith('+639') && cleaned.length === 12) ||
       // 639xxxxxxxxx (12 digits)
@@ -87,8 +96,13 @@ export default function AdminLogin() {
       // +63xxxxxxxxx (13 chars: + and 12 digits)
       (phone.startsWith('+63') && cleaned.length === 12) ||
       // 63xxxxxxxxx (12 digits)
-      (cleaned.startsWith('63') && cleaned.length === 12)
+      (cleaned.startsWith('63') && cleaned.length === 12) ||
+      // Allow any Philippine-looking number with 10+ digits
+      (cleaned.length >= 10 && (cleaned.startsWith('9') || phone.startsWith('+')))
     )
+    
+    console.log('📱 Phone validation result:', isValidFormat)
+    return isValidFormat
   }
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
