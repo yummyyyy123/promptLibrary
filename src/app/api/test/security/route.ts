@@ -10,28 +10,28 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Test 1: Rate Limiting
+    // Test 1: Rate Limiting (Cooldown-based)
     try {
       const testEmail = 'ratelimit@test.com'
       let requestCount = 0
       let blocked = false
       
-      // Simulate multiple rapid requests
-      for (let i = 0; i < 6; i++) {
-        const stored = await EmailOTP.storeOTP(testEmail, `12345${i}`)
-        if (!stored && i >= 5) {
-          blocked = true
-          break
-        }
-        requestCount++
+      // First request should work
+      const firstStored = await EmailOTP.storeOTP(testEmail, '123456')
+      if (firstStored) requestCount++
+      
+      // Immediate second request should be blocked (1-minute cooldown)
+      const secondStored = await EmailOTP.storeOTP(testEmail, '123457')
+      if (!secondStored) {
+        blocked = true
       }
       
-      const passed = blocked // Should be blocked after 5 requests
+      const passed = firstStored && !secondStored // First works, second blocked
       
       results.tests.push({
         name: 'Rate Limiting',
         status: passed ? 'PASS' : 'FAIL',
-        details: `Requests made: ${requestCount}, Rate limited: ${blocked}`,
+        details: `First request: ${firstStored}, Second blocked: ${!secondStored}, Cooldown working: ${blocked}`,
         severity: 'HIGH'
       })
       
