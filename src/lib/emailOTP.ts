@@ -19,15 +19,15 @@ export class EmailOTP {
   // Store OTP with enhanced security tracking
   static async storeOTP(email: string, otp: string, ip?: string, userAgent?: string): Promise<boolean> {
     try {
-      // Clean expired OTPs first (memory optimization)
-      this.cleanupExpiredOTPs()
-      
-      // Check if OTP already exists for this email
+      // Check if OTP already exists for this email (cooldown check first)
       const existing = this.otpStore.get(email)
       if (existing && Date.now() - existing.timestamp < 60000) { // 1 minute cooldown
         console.log(`⚠️ OTP recently requested for ${email}`)
         return false
       }
+
+      // Clean expired OTPs after cooldown check (memory optimization)
+      this.cleanupExpiredOTPs()
 
       this.otpStore.set(email, {
         code: otp,
