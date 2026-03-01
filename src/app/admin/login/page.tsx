@@ -112,7 +112,7 @@ export default function AdminLogin() {
     try {
       // Validate phone number format
       if (!validatePhoneNumber(credentials.phone)) {
-        setError('Please enter a valid Philippine phone number (+639xxxxxxxxx, 639xxxxxxxxx, 09xxxxxxxxx, +63xxxxxxxxx, or 63xxxxxxxxx) - max 15 digits')
+        setError('Please enter a valid Philippine phone number (09XXXXXXXXX, 639XXXXXXXXX, +639XXXXXXXXX) - 11 to 14 digits')
         setIsLoading(false)
         return
       }
@@ -205,7 +205,7 @@ export default function AdminLogin() {
     try {
       // Validate phone number format
       if (!validatePhoneNumber(credentials.phone)) {
-        setError('Please enter a valid Philippine phone number (+639xxxxxxxxx, 639xxxxxxxxx, 09xxxxxxxxx, +63xxxxxxxxx, or 63xxxxxxxxx) - max 15 digits')
+        setError('Please enter a valid Philippine phone number (09XXXXXXXXX, 639XXXXXXXXX, +639XXXXXXXXX) - 11 to 14 digits')
         setIsLoading(false)
         return
       }
