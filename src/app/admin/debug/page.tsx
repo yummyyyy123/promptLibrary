@@ -108,29 +108,29 @@ export default function AdminDebug() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
-              <Shield className="w-8 h-8 text-blue-600" />
+              <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Debug Panel</h1>
-                <p className="text-gray-600 dark:text-gray-400">System diagnostics and troubleshooting</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Admin Debug Panel</h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400">System diagnostics and troubleshooting</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
               <button
                 onClick={fetchDebugInfo}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
               >
                 <RefreshCw className="w-4 h-4" />
                 Refresh
               </button>
               <button
                 onClick={() => router.push('/admin/login')}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                className="px-3 sm:px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm sm:text-base"
               >
                 Go to Login
               </button>
@@ -139,16 +139,16 @@ export default function AdminDebug() {
         </div>
 
         {/* Environment Variables */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <Key className="w-5 h-5 text-amber-600" />
             Environment Variables
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {debugInfo && Object.entries(debugInfo.environment).map(([key, value]) => (
-              <div key={key} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <span className="font-medium text-gray-900 dark:text-white">{key}</span>
-                <div className="flex items-center gap-2">
+              <div key={key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg gap-2 sm:gap-0">
+                <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base break-words">{key}</span>
+                <div className="flex items-center gap-2 flex-shrink-0">
                   {getStatusIcon(value as string)}
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(value as string)}`}>
                     {value}
@@ -160,20 +160,20 @@ export default function AdminDebug() {
         </div>
 
         {/* Database Status */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <Database className="w-5 h-5 text-green-600" />
             Database Connection
           </h2>
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg gap-3 sm:gap-0">
               <div>
-                <p className="font-medium text-gray-900 dark:text-white">Connection Status</p>
+                <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">Connection Status</p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   {debugInfo?.database.status === 'CONNECTED' ? 'Successfully connected to Supabase' : 'Connection failed'}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 {getStatusIcon(debugInfo?.database.status || 'FAILED')}
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(debugInfo?.database.status || 'FAILED')}`}>
                   {debugInfo?.database.status || 'UNKNOWN'}
@@ -183,27 +183,27 @@ export default function AdminDebug() {
             
             {debugInfo?.database.error && (
               <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                <p className="font-medium text-red-800 dark:text-red-200 mb-2">Error Details:</p>
-                <p className="text-sm text-red-600 dark:text-red-400 font-mono">{String(debugInfo.database.error)}</p>
+                <p className="font-medium text-red-800 dark:text-red-200 mb-2 text-sm sm:text-base">Error Details:</p>
+                <p className="text-sm text-red-600 dark:text-red-400 font-mono break-all">{String(debugInfo.database.error)}</p>
               </div>
             )}
           </div>
         </div>
 
         {/* System Info */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <Globe className="w-5 h-5 text-blue-600" />
             System Information
           </h2>
           <div className="space-y-2">
-            <div className="flex justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <span className="font-medium text-gray-900 dark:text-white">Timestamp</span>
-              <span className="text-gray-600 dark:text-gray-400">{debugInfo?.timestamp || 'N/A'}</span>
+            <div className="flex flex-col sm:flex-row sm:justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg gap-2 sm:gap-0">
+              <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">Timestamp</span>
+              <span className="text-gray-600 dark:text-gray-400 text-sm sm:text-base break-all">{debugInfo?.timestamp || 'N/A'}</span>
             </div>
-            <div className="flex justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <span className="font-medium text-gray-900 dark:text-white">Environment</span>
-              <span className="text-gray-600 dark:text-gray-400">{debugInfo?.environment?.NODE_ENV || 'N/A'}</span>
+            <div className="flex flex-col sm:flex-row sm:justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg gap-2 sm:gap-0">
+              <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">Environment</span>
+              <span className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">{debugInfo?.environment?.NODE_ENV || 'N/A'}</span>
             </div>
           </div>
         </div>
