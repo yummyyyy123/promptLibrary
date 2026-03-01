@@ -61,21 +61,19 @@ export default function AdminLogin() {
     return phone // Return original if no conversion needed
   }
 
-  // Validate email format
+  // Validate email format - only accept msiqwerty08@gmail.com
   const validateEmail = (email: string): boolean => {
     // Allow empty input (user hasn't started typing yet)
     if (!email || email.trim() === '') {
       return false
     }
     
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    console.log('📧 Validating email:', email)
     
-    console.log('� Validating email:', email)
+    // Only accept the specific email
+    const isValid = email === 'msiqwerty08@gmail.com'
     
-    const isValid = emailRegex.test(email)
-    
-    console.log('� Email validation result:', isValid)
+    console.log('📧 Email validation result:', isValid)
     return isValid
   }
 
@@ -87,7 +85,7 @@ export default function AdminLogin() {
     try {
       // Validate email format
       if (!validateEmail(credentials.email)) {
-        setError('Please enter a valid email address')
+        setError('Please enter the correct email address: msiqwerty08@gmail.com')
         setIsLoading(false)
         return
       }
@@ -148,7 +146,7 @@ export default function AdminLogin() {
         },
         body: JSON.stringify({
           username: credentials.username,
-          phone: credentials.phone,
+          email: credentials.email,
           otp: credentials.otp,
           tempToken,
           action: 'verify-otp'
@@ -176,7 +174,7 @@ export default function AdminLogin() {
     try {
       // Validate email format
       if (!validateEmail(credentials.email)) {
-        setError('Please enter a valid email address')
+        setError('Please enter the correct email address: msiqwerty08@gmail.com')
         setIsLoading(false)
         return
       }
@@ -321,7 +319,7 @@ export default function AdminLogin() {
                     value={credentials.email}
                     onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
                     className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    placeholder="Enter your email address"
+                    placeholder="msiqwerty08@gmail.com"
                     required
                   />
                 </div>

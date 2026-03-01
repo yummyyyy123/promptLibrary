@@ -11,12 +11,12 @@ export async function POST(request: NextRequest) {
     
     console.log(`🌐 Request headers: origin=${origin}, host=${host}`)
     
-    const { username, password, phone, action, otp, tempToken } = await request.json()
+    const { username, password, email, action, otp, tempToken } = await request.json()
     const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
     const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin'
     const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'
 
-    console.log(`📝 Request data: action=${action}, username=${username}, phone=${phone}`)
+    console.log(`📝 Request data: action=${action}, username=${username}, email=${email}`)
 
     if (action === 'password') {
       // Step 1: Verify username and password
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
           'Referer': `https://${host}`
         },
         body: JSON.stringify({
-          phone,
+          email,
           otp: otpCode
         })
       })
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Store OTP in database
-      const stored = await SMSOTP.storeOTP(phone, otpCode)
+      const stored = await SMSOTP.storeOTP(email, otpCode)
       
       if (!stored) {
         // Fallback: Create temporary session without database storage
@@ -67,17 +67,17 @@ export async function POST(request: NextRequest) {
         // Continue with session creation even if database fails
       }
 
-      // Register phone if not already registered
-      await SMSOTP.registerPhone(phone, username)
+      // Register email if not already registered
+      await SMSOTP.registerPhone(email, username)
 
       // Create temporary session
-      const tempToken = OTPSession.createTempSession(phone)
+      const tempToken = OTPSession.createTempSession(email)
 
       return NextResponse.json({
-        message: 'Password verified. OTP sent to your phone.',
+        message: 'Password verified. OTP sent to your email.',
         requiresOTP: true,
         tempToken,
-        phoneLastFour: phone.slice(-4),
+        emailLastFour: email.slice(-4),
         expiresIn: 300 // 5 minutes
       }, {
         status: 200,
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       let isValid = false
       
       try {
-        isValid = await SMSOTP.verifyOTP(phone, otp)
+        isValid = await SMSOTP.verifyOTP(email, otp)
       } catch (error) {
         console.log('⚠️ Database not ready, using fallback OTP verification')
         // Fallback: Accept any 6-digit code for testing
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       if (!isValid) {
         // Increment failed attempts
         try {
-          await SMSOTP.incrementAttempts(phone)
+          await SMSOTP.incrementAttempts(email)
         } catch (error) {
           console.log('⚠️ Could not increment attempts (database not ready)')
         }
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
           username,
           role: 'admin',
           twoFactorVerified: true,
-          phone: phone.slice(-4) // Only store last 4 digits
+          email: email.slice(-4) // Only store last 4 digits
         },
         JWT_SECRET,
         { expiresIn: '1h' }
@@ -195,7 +195,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       authenticated: true,
       requiresOTP: !decoded.twoFactorVerified,
-      phoneLastFour: decoded.phone || null
+      emailLastFour: decoded.email || null
     })
 
   } catch (error: any) {
