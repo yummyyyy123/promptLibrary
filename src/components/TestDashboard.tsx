@@ -31,11 +31,35 @@ interface IssueDetail {
   recommendation: string
 }
 
+interface VulnerabilityData {
+  timestamp: string
+  sources: Record<string, string>
+  currentSecurityStatus: {
+    score: number
+    issues: number
+    status: string
+  }
+  latestVulnerabilities: Array<{
+    id: string
+    title: string
+    severity: string
+    description: string
+    affected: string[]
+    patched: boolean
+    url: string
+  }>
+  owaspTop10: string[]
+  dependencies: string[]
+  recommendations: string[]
+}
+
 export default function TestDashboard() {
   const [results, setResults] = useState<TestResults | null>(null)
   const [loading, setLoading] = useState(false)
   const [lastRun, setLastRun] = useState<string>('')
   const [issues, setIssues] = useState<IssueDetail[]>([])
+  const [vulnerabilityData, setVulnerabilityData] = useState<VulnerabilityData | null>(null)
+  const [vulnerabilityLoading, setVulnerabilityLoading] = useState(false)
 
   const runTests = async (testType: 'all' | 'smoke' | 'security' | 'pipeline' = 'all') => {
     setLoading(true)
@@ -206,6 +230,35 @@ export default function TestDashboard() {
     setIssues(identifiedIssues)
   }
 
+  // Fetch latest security vulnerabilities
+  const fetchVulnerabilities = async () => {
+    setVulnerabilityLoading(true)
+    try {
+      console.log('🔍 Fetching security vulnerabilities...')
+      const response = await fetch('/api/security/vulnerabilities', {
+        method: 'GET',
+        headers: { 'Cache-Control': 'no-cache' }
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      console.log('📋 Vulnerability data:', data)
+      
+      if (data.success) {
+        setVulnerabilityData(data.data)
+      } else {
+        console.error('❌ Vulnerability fetch failed:', data.error)
+      }
+    } catch (error) {
+      console.error('❌ Vulnerability fetch error:', error)
+    } finally {
+      setVulnerabilityLoading(false)
+    }
+  }
+
   // Simple test function to verify API is working
   const testAPI = async () => {
     try {
@@ -228,6 +281,7 @@ export default function TestDashboard() {
 
   useEffect(() => {
     runTests('pipeline')
+    fetchVulnerabilities()
   }, [])
 
   const getStatusIcon = (status: string) => {
@@ -362,12 +416,12 @@ export default function TestDashboard() {
                     {getIssueIcon(issue.type)}
                     <div className="flex-1">
                       <h3 className="font-bold text-slate-900 dark:text-white mb-1">{issue.title}</h3>
-                      <p className="text-slate-600 dark:text-slate-400 text-sm mb-2">{issue.description}</p>
+                      <p className="text-slate-700 dark:text-slate-300 text-sm mb-2">{issue.description}</p>
                       <div className="flex items-center gap-4 text-xs">
-                        <span className="px-2 py-1 bg-white dark:bg-slate-800 rounded-full font-medium text-slate-700 dark:text-slate-300">
+                        <span className="px-2 py-1 bg-white dark:bg-slate-800 rounded-full font-medium text-slate-800 dark:text-slate-200">
                           {issue.test}
                         </span>
-                        <span className="text-slate-500 dark:text-slate-400">
+                        <span className="text-slate-600 dark:text-slate-400">
                           💡 {issue.recommendation}
                         </span>
                       </div>
@@ -443,12 +497,12 @@ export default function TestDashboard() {
             {results.pipeline.smoke && (
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="font-semibold text-slate-600 dark:text-slate-400">Passed</span>
-                  <span className="font-bold text-emerald-600">{results.pipeline.smoke.passed}</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Passed</span>
+                  <span className="font-bold text-emerald-700">{results.pipeline.smoke.passed}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="font-semibold text-slate-600 dark:text-slate-400">Failed</span>
-                  <span className="font-bold text-red-600">{results.pipeline.smoke.failed}</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Failed</span>
+                  <span className="font-bold text-red-700">{results.pipeline.smoke.failed}</span>
                 </div>
                 <button
                   onClick={() => runTests('smoke')}
@@ -480,18 +534,18 @@ export default function TestDashboard() {
             {results.pipeline.security && (
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="font-semibold text-slate-600 dark:text-slate-400">Security Score</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Security Score</span>
                   <span className={`font-bold ${getScoreColor(results.pipeline.security.securityScore)}`}>
                     {results.pipeline.security.securityScore}%
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="font-semibold text-slate-600 dark:text-slate-400">Passed</span>
-                  <span className="font-bold text-emerald-600">{results.pipeline.security.passed}</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Passed</span>
+                  <span className="font-bold text-emerald-700">{results.pipeline.security.passed}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="font-semibold text-slate-600 dark:text-slate-400">Failed</span>
-                  <span className="font-bold text-red-600">{results.pipeline.security.failed}</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Failed</span>
+                  <span className="font-bold text-red-700">{results.pipeline.security.failed}</span>
                 </div>
                 <button
                   onClick={() => runTests('security')}
@@ -523,18 +577,18 @@ export default function TestDashboard() {
             {results.pipeline.performance && (
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="font-semibold text-slate-600 dark:text-slate-400">Performance Score</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Performance Score</span>
                   <span className={`font-bold ${getScoreColor(results.pipeline.performance.performanceScore)}`}>
                     {results.pipeline.performance.performanceScore}%
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="font-semibold text-slate-600 dark:text-slate-400">Avg Response Time</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Avg Response Time</span>
                   <span className="font-bold text-slate-900 dark:text-white">{results.pipeline.performance.avgResponseTime}ms</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="font-semibold text-slate-600 dark:text-slate-400">Passed</span>
-                  <span className="font-bold text-emerald-600">{results.pipeline.performance.passed}</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Passed</span>
+                  <span className="font-bold text-emerald-700">{results.pipeline.performance.passed}</span>
                 </div>
               </div>
             )}
@@ -559,12 +613,12 @@ export default function TestDashboard() {
             {results.pipeline.integration && (
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="font-semibold text-slate-600 dark:text-slate-400">Passed</span>
-                  <span className="font-bold text-emerald-600">{results.pipeline.integration.passed}</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Passed</span>
+                  <span className="font-bold text-emerald-700">{results.pipeline.integration.passed}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="font-semibold text-slate-600 dark:text-slate-400">Failed</span>
-                  <span className="font-bold text-red-600">{results.pipeline.integration.failed}</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Failed</span>
+                  <span className="font-bold text-red-700">{results.pipeline.integration.failed}</span>
                 </div>
                 {results.pipeline.integration.tests && (
                   <div className="mt-3 space-y-2">
@@ -580,6 +634,94 @@ export default function TestDashboard() {
             )}
           </div>
         </div>
+
+        {/* Security Vulnerabilities */}
+        {vulnerabilityData && (
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 mt-8 border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <AlertIcon className="w-6 h-6 text-amber-600" />
+                Latest Security Vulnerabilities
+              </h2>
+              <button
+                onClick={fetchVulnerabilities}
+                disabled={vulnerabilityLoading}
+                className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl transition-all disabled:opacity-50 font-medium"
+              >
+                <RefreshCw className={`w-4 h-4 ${vulnerabilityLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Current Security Status */}
+              <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Current Security Status</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Security Score</span>
+                    <span className={`font-bold ${getScoreColor(vulnerabilityData.currentSecurityStatus.score)}`}>
+                      {vulnerabilityData.currentSecurityStatus.score}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Active Issues</span>
+                    <span className="font-bold text-red-700">{vulnerabilityData.currentSecurityStatus.issues}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Status</span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${getStatusColor(vulnerabilityData.currentSecurityStatus.status)}`}>
+                      {vulnerabilityData.currentSecurityStatus.status}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Vulnerabilities */}
+              <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-6">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Recent Vulnerabilities</h3>
+                <div className="space-y-2">
+                  {vulnerabilityData.latestVulnerabilities.slice(0, 3).map((vuln, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-white dark:bg-slate-800 rounded-lg">
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900 dark:text-white text-sm">{vuln.title}</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">{vuln.id}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                          vuln.severity === 'CRITICAL' ? 'bg-red-100 text-red-700' :
+                          vuln.severity === 'HIGH' ? 'bg-red-100 text-red-600' :
+                          vuln.severity === 'MEDIUM' ? 'bg-amber-100 text-amber-600' :
+                          'bg-blue-100 text-blue-600'
+                        }`}>
+                          {vuln.severity}
+                        </span>
+                        {vuln.patched && (
+                          <span className="px-2 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-600">
+                            Patched
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Security Recommendations */}
+            <div className="mt-6">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Security Recommendations</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                {vulnerabilityData.recommendations.slice(0, 8).map((rec, index) => (
+                  <div key={index} className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                    <Info className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{rec}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Overall Status */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 mt-8 border border-slate-200 dark:border-slate-700">
