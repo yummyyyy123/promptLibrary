@@ -1,7 +1,7 @@
 // Email OTP delivery using Resend API
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
-import { EmailOTP } from '@/lib/emailOTP'
+import { EmailOTP, OTPSession } from '@/lib/emailOTP'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -33,6 +33,10 @@ export async function POST(request: NextRequest) {
     if (!stored) {
       console.log('⚠️ Failed to store OTP, but continuing...')
     }
+
+    // Create temporary session
+    const tempToken = OTPSession.createTempSession(email)
+    console.log(`🔐 Temp session created: ${tempToken}`)
 
     // Send email using Resend
     try {
@@ -84,7 +88,8 @@ export async function POST(request: NextRequest) {
         messageId: data?.id,
         fallback: false,
         emailError: null,
-        provider: 'Email'
+        provider: 'Email',
+        tempToken: tempToken  // Include temp token for frontend
       })
 
     } catch (emailError: any) {
@@ -96,7 +101,8 @@ export async function POST(request: NextRequest) {
         messageId: null,
         fallback: true,
         emailError: emailError.message,
-        provider: 'Email'
+        provider: 'Email',
+        tempToken: tempToken  // Include temp token even in fallback
       })
     }
 

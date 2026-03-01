@@ -108,7 +108,7 @@ export default function AdminLogin() {
       if (response.ok) {
         if (data.success) {
           // OTP sent successfully
-          setTempToken('temp-' + Date.now()) // Create temp token
+          setTempToken(data.tempToken || 'temp-' + Date.now()) // Use temp token from response
           setPhoneLastFour(credentials.email.slice(-4)) // Use email last 4 chars
           setStep('otp')
           startResendTimer(300)
@@ -197,7 +197,7 @@ export default function AdminLogin() {
       if (response.ok) {
         if (data.success) {
           // OTP resent successfully
-          setTempToken('temp-' + Date.now())
+          setTempToken(data.tempToken || 'temp-' + Date.now()) // Use temp token from response
           startResendTimer(300)
           setError('OTP resent successfully')
           setTimeout(() => setError(''), 3000)
