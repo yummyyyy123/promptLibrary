@@ -635,6 +635,205 @@ export default function TestDashboard() {
           </div>
         </div>
 
+        {/* Security Features & Pipeline Overview */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 mt-8 border border-slate-200 dark:border-slate-700">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+            <Shield className="w-6 h-6 text-emerald-600" />
+            Security Features & Pipeline Overview
+          </h2>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Website Security Features */}
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                <Lock className="w-5 h-5 text-emerald-500" />
+                Website Security Features
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-slate-900 dark:text-white">JWT Authentication</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Secure token-based authentication with expiration</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-slate-900 dark:text-white">Email OTP System</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">One-time password with rate limiting & expiration</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-slate-900 dark:text-white">Rate Limiting</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">1-minute cooldown between OTP requests</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-slate-900 dark:text-white">Brute Force Protection</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Blocks after 3 failed OTP attempts</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-slate-900 dark:text-white">Security Headers</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">X-Frame-Options, X-Content-Type-Options, XSS Protection</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-slate-900 dark:text-white">Input Validation</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">XSS protection and email format validation</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-slate-900 dark:text-white">Session Management</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Secure cookie handling and session cleanup</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-slate-900 dark:text-white">CORS Protection</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Cross-origin resource sharing controls</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Pipeline Overview */}
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                <GitBranch className="w-5 h-5 text-blue-500" />
+                Development & Deployment Pipeline
+              </h3>
+              <div className="space-y-4">
+                {/* GitHub to Vercel Pipeline */}
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <GitBranch className="w-5 h-5 text-blue-600" />
+                    <h4 className="font-bold text-slate-900 dark:text-white">GitHub → Vercel Pipeline</h4>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900 dark:text-white">1. Code Push to GitHub</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">Developer pushes to main branch</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900 dark:text-white">2. Vercel Webhook Trigger</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">Automatic deployment trigger</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900 dark:text-white">3. Build Process</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">Next.js compilation and optimization</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900 dark:text-white">4. Deployment</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">Production deployment to Vercel</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Testing Pipeline */}
+                <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Activity className="w-5 h-5 text-amber-600" />
+                    <h4 className="font-bold text-slate-900 dark:text-white">Testing Pipeline</h4>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-amber-600 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900 dark:text-white">1. Smoke Tests</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">Core functionality validation</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-amber-600 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900 dark:text-white">2. Security Tests</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">Rate limiting, brute force, headers</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-amber-600 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900 dark:text-white">3. Performance Tests</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">Response time and load testing</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-amber-600 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900 dark:text-white">4. Integration Tests</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">API endpoints and auth flow</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Compiler/Build Process */}
+                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Zap className="w-5 h-5 text-purple-600" />
+                    <h4 className="font-bold text-slate-900 dark:text-white">Compiler & Build Process</h4>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900 dark:text-white">1. TypeScript Compilation</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">Type checking and transpilation</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900 dark:text-white">2. Next.js Build</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">SSG, SSR, and API route compilation</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900 dark:text-white">3. Asset Optimization</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">CSS/JS minification and image optimization</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-purple-600 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900 dark:text-white">4. Bundle Analysis</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">Code splitting and tree shaking</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Security Vulnerabilities */}
         {vulnerabilityData && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 mt-8 border border-slate-200 dark:border-slate-700">
