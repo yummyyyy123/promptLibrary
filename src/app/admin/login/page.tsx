@@ -11,7 +11,7 @@ export default function AdminLogin() {
   const [credentials, setCredentials] = useState({
     username: '',
     password: '',
-    phone: '',
+    email: '',
     otp: ''
   })
   const [showPassword, setShowPassword] = useState(false)
@@ -61,46 +61,21 @@ export default function AdminLogin() {
     return phone // Return original if no conversion needed
   }
 
-  // Validate Philippine phone number format - accept 09XXX, 639XXX, +639XXX with 11-14 digits
-  const validatePhoneNumber = (phone: string): boolean => {
+  // Validate email format
+  const validateEmail = (email: string): boolean => {
     // Allow empty input (user hasn't started typing yet)
-    if (!phone || phone.trim() === '') {
+    if (!email || email.trim() === '') {
       return false
     }
     
-    const cleaned = phone.replace(/[^\d]/g, '')
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     
-    // Max 15 digits
-    if (cleaned.length > 15) {
-      return false
-    }
+    console.log('� Validating email:', email)
     
-    // Accept 11-14 digit phone numbers
-    if (cleaned.length < 11 || cleaned.length > 14) {
-      return false
-    }
+    const isValid = emailRegex.test(email)
     
-    console.log('📱 Validating phone:', phone, 'cleaned:', cleaned, 'length:', cleaned.length)
-    
-    // Accept Philippine phone numbers:
-    // - 11 digits (09xxxxxxxxx)
-    // - 12-14 digits (639xxxxxxxxx, 63xxxxxxxxx, etc.)
-    // - 12-14 characters with + prefix (+639xxxxxxxxx, +63xxxxxxxxx, etc.)
-    
-    const isValid = (
-      // 11 digits starting with 09
-      (cleaned.length === 11 && cleaned.startsWith('09')) ||
-      // 12-14 digits starting with 639 or 63
-      ((cleaned.length >= 12 && cleaned.length <= 14) && (cleaned.startsWith('639') || cleaned.startsWith('63'))) ||
-      // 12-14 characters with + prefix
-      ((phone.length >= 12 && phone.length <= 15) && (phone.startsWith('+639') || phone.startsWith('+63'))) ||
-      // 12-14 digits starting with 9 (Philippine mobile)
-      ((cleaned.length >= 12 && cleaned.length <= 14) && cleaned.startsWith('9')) ||
-      // Any 11-14 digit number for flexibility
-      (cleaned.length >= 11 && cleaned.length <= 14)
-    )
-    
-    console.log('📱 Phone validation result:', isValid)
+    console.log('� Email validation result:', isValid)
     return isValid
   }
 
@@ -110,18 +85,14 @@ export default function AdminLogin() {
     setIsLoading(true)
 
     try {
-      // Validate phone number format
-      if (!validatePhoneNumber(credentials.phone)) {
-        setError('Please enter a valid Philippine phone number (09XXXXXXXXX, 639XXXXXXXXX, +639XXXXXXXXX) - 11 to 14 digits')
+      // Validate email format
+      if (!validateEmail(credentials.email)) {
+        setError('Please enter a valid email address')
         setIsLoading(false)
         return
       }
 
-      // Convert to international format for backend
-      const internationalPhone = convertToInternational(credentials.phone)
-      console.log('📱 Converting phone:', credentials.phone, '→', internationalPhone)
-
-      const response = await fetch('/api/admin/auth/real-sms', {
+      const response = await fetch('/api/admin/auth/email-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -129,7 +100,7 @@ export default function AdminLogin() {
           'Referer': window.location.href
         },
         body: JSON.stringify({
-          phone: internationalPhone, // Send converted international format
+          email: credentials.email,
           otp: otpCode
         })
       })
@@ -140,16 +111,16 @@ export default function AdminLogin() {
         if (data.success) {
           // OTP sent successfully
           setTempToken('temp-' + Date.now()) // Create temp token
-          setPhoneLastFour(credentials.phone.slice(-4))
+          setPhoneLastFour(credentials.email.slice(-4)) // Use email last 4 chars
           setStep('otp')
           startResendTimer(300)
           
           // Show OTP code in alert (for testing)
           if (typeof window !== 'undefined') {
             if (data.fallback) {
-              alert(`⚠️ SMS not configured - OTP: ${data.otp}\nProvider: ${data.provider || 'None'}\nError: ${data.smsError || 'Check Vercel environment variables'}`)
+              alert(`⚠️ Email not configured - OTP: ${data.otp}\nProvider: ${data.provider || 'None'}\nError: ${data.emailError || 'Check Vercel environment variables'}`)
             } else {
-              alert(`✅ SMS sent via ${data.provider}!\nMessage ID: ${data.messageId}\nCheck your phone for OTP`)
+              alert(`✅ Email sent via ${data.provider}!\nMessage ID: ${data.messageId}\nCheck your email for OTP`)
             }
           }
         } else {
@@ -203,18 +174,14 @@ export default function AdminLogin() {
     setIsLoading(true)
 
     try {
-      // Validate phone number format
-      if (!validatePhoneNumber(credentials.phone)) {
-        setError('Please enter a valid Philippine phone number (09XXXXXXXXX, 639XXXXXXXXX, +639XXXXXXXXX) - 11 to 14 digits')
+      // Validate email format
+      if (!validateEmail(credentials.email)) {
+        setError('Please enter a valid email address')
         setIsLoading(false)
         return
       }
 
-      // Convert to international format for backend
-      const internationalPhone = convertToInternational(credentials.phone)
-      console.log('📱 Converting phone for resend:', credentials.phone, '→', internationalPhone)
-
-      const response = await fetch('/api/admin/auth/real-sms', {
+      const response = await fetch('/api/admin/auth/email-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -222,7 +189,7 @@ export default function AdminLogin() {
           'Referer': window.location.href
         },
         body: JSON.stringify({
-          phone: internationalPhone, // Send converted international format
+          email: credentials.email,
           otp: otpCode
         })
       })
@@ -240,9 +207,9 @@ export default function AdminLogin() {
           // Show OTP code in alert (for testing)
           if (typeof window !== 'undefined') {
             if (data.fallback) {
-              alert(`⚠️ SMS not configured - OTP: ${data.otp}\nProvider: ${data.provider || 'None'}\nError: ${data.smsError || 'Check Vercel environment variables'}`)
+              alert(`⚠️ Email not configured - OTP: ${data.otp}\nProvider: ${data.provider || 'None'}\nError: ${data.emailError || 'Check Vercel environment variables'}`)
             } else {
-              alert(`✅ SMS sent via ${data.provider}!\nMessage ID: ${data.messageId}\nCheck your phone for OTP`)
+              alert(`✅ Email sent via ${data.provider}!\nMessage ID: ${data.messageId}\nCheck your email for OTP`)
             }
           }
         } else {
@@ -345,22 +312,21 @@ export default function AdminLogin() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Phone Number
+                  Email Address
                 </label>
                 <div className="relative">
                   <Smartphone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
-                    type="tel"
-                    value={credentials.phone}
-                    onChange={(e) => setCredentials({ ...credentials, phone: e.target.value })}
+                    type="email"
+                    value={credentials.email}
+                    onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
                     className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    placeholder="+639xxxxxxxxx, 639xxxxxxxxx, or 09xxxxxxxxx"
-                    maxLength={15}
+                    placeholder="Enter your email address"
                     required
                   />
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Enter your 11-digit mobile number for 2FA verification
+                  Enter your email address for 2FA verification
                 </p>
               </div>
 
@@ -375,7 +341,7 @@ export default function AdminLogin() {
 
               <button
                 type="submit"
-                disabled={isLoading || !credentials.username || !credentials.password || !validatePhoneNumber(credentials.phone)}
+                disabled={isLoading || !credentials.username || !credentials.password || !validateEmail(credentials.email)}
                 className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? 'Verifying...' : 'Send OTP'}
@@ -386,7 +352,7 @@ export default function AdminLogin() {
                   🔐 Two-factor authentication enabled for enhanced security
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  You will receive a 6-digit OTP via SMS after password verification
+                  You will receive a 6-digit OTP via email after password verification
                 </p>
               </div>
             </form>
@@ -400,7 +366,7 @@ export default function AdminLogin() {
                   Two-Factor Authentication
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Enter the 6-digit code sent to {formatPhoneNumber(credentials.phone.replace(/(\d{4})(\d{3})(\d{4})/, '$1 $2 $3'))}
+                  Enter the 6-digit code sent to {credentials.email}
                 </p>
               </div>
 
