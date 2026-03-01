@@ -14,16 +14,18 @@ export async function GET(request: NextRequest) {
   try {
     // Test 1: Rate Limiting (Cooldown-based)
     try {
+      console.log('🔍 Testing rate limiting...')
       const testEmail = 'ratelimit@test.com'
       let requestCount = 0
       let blocked = false
-      
-      console.log('🔍 Testing rate limiting...')
       
       // First request should work
       const firstStored = await EmailOTP.storeOTP(testEmail, '123456')
       console.log(`📊 First request result: ${firstStored}`)
       if (firstStored) requestCount++
+      
+      // Small delay to ensure timestamp difference
+      await new Promise(resolve => setTimeout(resolve, 10))
       
       // Immediate second request should be blocked (1-minute cooldown)
       const secondStored = await EmailOTP.storeOTP(testEmail, '123457')
@@ -159,10 +161,11 @@ export async function GET(request: NextRequest) {
       
       console.log(`📊 Security headers found:`, headers)
       
+      // Check for required headers (case-insensitive)
       const requiredHeaders = ['x-content-type-options', 'x-frame-options']
       const passed = requiredHeaders.every(header => {
-        const headerKey = header as keyof typeof headers
-        return headers[headerKey]
+        const value = response.headers.get(header)
+        return value !== null && value !== undefined && value !== ''
       })
       
       console.log(`📊 Security headers test passed: ${passed}`)
