@@ -1,4 +1,4 @@
-// Real SMS delivery to phone 09948655838
+// Real SMS delivery to phone with flexible validation
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
@@ -10,11 +10,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Phone number required' }, { status: 400 })
     }
 
-    // Validate phone number format
-    const phoneRegex = /^09\d{9}$/
-    if (!phoneRegex.test(phone)) {
+    // Validate phone number format - accept 09XXX, 639XXX, +639XXX with 11-14 digits
+    const cleaned = phone.replace(/[^\d]/g, '')
+    
+    console.log(`📱 Validating phone: ${phone} (cleaned: ${cleaned}, length: ${cleaned.length})`)
+    
+    // Accept 11-14 digit Philippine numbers
+    if (cleaned.length < 11 || cleaned.length > 14) {
       return NextResponse.json({
-        error: 'Invalid phone number format. Use 09XXXXXXXXX format (11 digits).'
+        error: 'Invalid phone number format. Use 09XXXXXXXXX, 639XXXXXXXXX, or +639XXXXXXXXX format (11-14 digits).'
+      }, { status: 400 })
+    }
+    
+    // Validate Philippine format
+    const isValidFormat = (
+      // 11 digits starting with 09
+      (cleaned.length === 11 && cleaned.startsWith('09')) ||
+      // 12-14 digits starting with 639 or 63
+      ((cleaned.length >= 12 && cleaned.length <= 14) && (cleaned.startsWith('639') || cleaned.startsWith('63'))) ||
+      // 12-14 characters with + prefix
+      ((phone.length >= 12 && phone.length <= 15) && (phone.startsWith('+639') || phone.startsWith('+63'))) ||
+      // 12-14 digits starting with 9 (Philippine mobile)
+      ((cleaned.length >= 12 && cleaned.length <= 14) && cleaned.startsWith('9'))
+    )
+    
+    if (!isValidFormat) {
+      return NextResponse.json({
+        error: 'Invalid phone number format. Use 09XXXXXXXXX, 639XXXXXXXXX, or +639XXXXXXXXX format (11-14 digits).'
       }, { status: 400 })
     }
 
