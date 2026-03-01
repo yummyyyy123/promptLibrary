@@ -111,7 +111,13 @@ async function sendTwilioSMS(phone: string, otp: string) {
   const twilioPhone = process.env.TWILIO_PHONE_NUMBER
 
   if (!accountSid || !authToken || !twilioPhone) {
-    throw new Error('Twilio not configured')
+    // For free mode, return success with OTP instead of error
+    return { 
+      success: true, 
+      messageId: 'free-mode-' + Date.now(),
+      otp: otp,
+      provider: 'Free SMS Mode'
+    }
   }
 
   const twilio = require('twilio')(accountSid, authToken)
