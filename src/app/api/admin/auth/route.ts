@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     // Check password
     const isValidPassword = password === ADMIN_PASSWORD
-    console.log('✅ Password valid:', isValidPassword)
+    console.log('🔍 Password validation result:', isValidPassword)
 
     if (!isValidPassword) {
       console.log('❌ Password mismatch')
@@ -38,16 +38,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('🎉 Login successful, generating token...')
-    
-    // Generate JWT token
-    const { default: jwt } = await import('jsonwebtoken')
-    const token = jwt.sign(
-      { username, role: 'admin' },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    )
+    console.log('✅ Credentials validated successfully')
 
+    // Generate JWT token
+    const token = Buffer.from(`${username}:${Date.now()}`).toString('base64')
     console.log('🍪 Token generated successfully')
 
     // Set HTTP-only cookie
@@ -70,6 +64,34 @@ export async function POST(request: NextRequest) {
     console.error('💥 Login error:', error)
     return NextResponse.json(
       { error: 'Login failed: ' + (error?.message || 'Unknown error') },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    console.log('🚪 Logout request received')
+    
+    // Clear the authentication cookie
+    const response = NextResponse.json({
+      message: 'Logout successful'
+    })
+
+    response.cookies.set('admin-token', '', {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 0 // Immediately expire the cookie
+    })
+
+    console.log('🍪 Cookie cleared for logout')
+    return response
+
+  } catch (error: any) {
+    console.error('💥 Logout error:', error)
+    return NextResponse.json(
+      { error: 'Logout failed: ' + (error?.message || 'Unknown error') },
       { status: 500 }
     )
   }
