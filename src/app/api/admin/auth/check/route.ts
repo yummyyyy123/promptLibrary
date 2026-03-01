@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ 
         authenticated: false,
         error: 'No token provided'
-      })
+      }, { status: 401 })
     }
 
     try {
@@ -26,12 +26,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ 
         authenticated: false,
         error: 'Invalid token'
-      })
+      }, { status: 401 })
     }
   } catch (error: any) {
     return NextResponse.json({ 
       authenticated: false,
       error: 'Server error'
-    })
+    }, { status: 401 })
   }
 }
