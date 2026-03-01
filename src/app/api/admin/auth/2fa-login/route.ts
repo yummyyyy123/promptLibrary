@@ -1,7 +1,7 @@
 // Fix 2FA - Always require OTP for admin login
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
-import { SMSOTP, OTPSession } from '@/lib/smsOTP'
+import { EmailOTP, OTPSession } from '@/lib/emailOTP'
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
       // ALWAYS require 2FA for admin - no check needed
       // Generate and send OTP
-      const otpCode = SMSOTP.generateOTP()
+      const otpCode = EmailOTP.generateOTP()
       
       // Send OTP via SMS (using Twilio)
       const smsSent = await fetch('/api/admin/auth/twilio-sms', {
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Store OTP in database
-      const stored = await SMSOTP.storeOTP(email, otpCode)
+      const stored = await EmailOTP.storeOTP(email, otpCode)
       
       if (!stored) {
         // Fallback: Create temporary session without database storage
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Register email if not already registered
-      await SMSOTP.registerPhone(email, username)
+      await EmailOTP.registerEmail(email, username)
 
       // Create temporary session
       const tempToken = OTPSession.createTempSession(email)
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       let isValid = false
       
       try {
-        isValid = await SMSOTP.verifyOTP(email, otp)
+        isValid = await EmailOTP.verifyOTP(email, otp)
       } catch (error) {
         console.log('⚠️ Database not ready, using fallback OTP verification')
         // Fallback: Accept any 6-digit code for testing
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       if (!isValid) {
         // Increment failed attempts
         try {
-          await SMSOTP.incrementAttempts(email)
+          await EmailOTP.incrementAttempts(email)
         } catch (error) {
           console.log('⚠️ Could not increment attempts (database not ready)')
         }
