@@ -29,7 +29,7 @@ export default function AdminLogin() {
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/admin/auth/test-sms', {
+      const response = await fetch('/api/admin/auth/simple-sms', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,7 +107,7 @@ export default function AdminLogin() {
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/admin/auth/test-sms', {
+      const response = await fetch('/api/admin/auth/simple-sms', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
