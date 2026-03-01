@@ -23,12 +23,54 @@ export default function AdminLogin() {
   const [otpCode, setOtpCode] = useState('')
   const router = useRouter()
 
+  // Convert Philippine phone to international format
+  const convertToInternational = (phone: string): string => {
+    // Remove any spaces, dashes, or other non-numeric characters
+    const cleaned = phone.replace(/[^\d]/g, '')
+    
+    // If starts with 09 and has 11 digits total, convert to +63
+    if (cleaned.startsWith('09') && cleaned.length === 11) {
+      return '+63' + cleaned.substring(1) // Remove 0 and add +63
+    }
+    
+    // If already starts with 63 and has 12 digits, add +
+    if (cleaned.startsWith('63') && cleaned.length === 12) {
+      return '+' + cleaned
+    }
+    
+    // If already has +63, return as is
+    if (cleaned.startsWith('639') && cleaned.length === 12) {
+      return '+' + cleaned
+    }
+    
+    return phone // Return original if no conversion needed
+  }
+
+  // Validate Philippine phone number format
+  const validatePhoneNumber = (phone: string): boolean => {
+    const cleaned = phone.replace(/[^\d]/g, '')
+    
+    // Accept 09xxxxxxxxx (11 digits) or +63xxxxxxxxx (13 digits with +)
+    return /^09\d{9}$/.test(cleaned) || /^\+?63\d{10}$/.test(cleaned)
+  }
+
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setIsLoading(true)
 
     try {
+      // Validate phone number format
+      if (!validatePhoneNumber(credentials.phone)) {
+        setError('Please enter a valid Philippine phone number (09xxxxxxxxx or +63xxxxxxxxx)')
+        setIsLoading(false)
+        return
+      }
+
+      // Convert to international format for backend
+      const internationalPhone = convertToInternational(credentials.phone)
+      console.log('📱 Converting phone:', credentials.phone, '→', internationalPhone)
+
       const response = await fetch('/api/admin/auth/real-sms', {
         method: 'POST',
         headers: {
@@ -37,7 +79,7 @@ export default function AdminLogin() {
           'Referer': window.location.href
         },
         body: JSON.stringify({
-          phone: credentials.phone,
+          phone: internationalPhone, // Send converted international format
           otp: otpCode
         })
       })
@@ -111,6 +153,17 @@ export default function AdminLogin() {
     setIsLoading(true)
 
     try {
+      // Validate phone number format
+      if (!validatePhoneNumber(credentials.phone)) {
+        setError('Please enter a valid Philippine phone number (09xxxxxxxxx or +63xxxxxxxxx)')
+        setIsLoading(false)
+        return
+      }
+
+      // Convert to international format for backend
+      const internationalPhone = convertToInternational(credentials.phone)
+      console.log('📱 Converting phone for resend:', credentials.phone, '→', internationalPhone)
+
       const response = await fetch('/api/admin/auth/real-sms', {
         method: 'POST',
         headers: {
@@ -119,7 +172,7 @@ export default function AdminLogin() {
           'Referer': window.location.href
         },
         body: JSON.stringify({
-          phone: credentials.phone,
+          phone: internationalPhone, // Send converted international format
           otp: otpCode
         })
       })
@@ -136,7 +189,11 @@ export default function AdminLogin() {
           
           // Show OTP code in alert (for testing)
           if (typeof window !== 'undefined') {
-            alert(`📱 OTP Code: ${data.otp} (Check console for details)`)
+            if (data.fallback) {
+              alert(`⚠️ SMS not configured - OTP: ${data.otp}\nProvider: ${data.provider || 'None'}\nError: ${data.smsError || 'Check Vercel environment variables'}`)
+            } else {
+              alert(`✅ SMS sent via ${data.provider}!\nMessage ID: ${data.messageId}\nCheck your phone for OTP`)
+            }
           }
         } else {
           setError(data.error || 'Failed to resend OTP')
