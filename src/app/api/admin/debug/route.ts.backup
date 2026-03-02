@@ -19,21 +19,21 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
     // Test database connection
     let dbStatus = 'NOT TESTED'
     let dbError = null
-
+    
     try {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
       const supabaseKey = process.env.SUPABASE_SERVICE_KEY
-
+      
       if (supabaseUrl && supabaseKey) {
         const { createClient } = await import('@supabase/supabase-js')
         const supabase = createClient(supabaseUrl, supabaseKey)
-
+        
         // Test connection with a simple query
         const { data, error } = await supabase
           .from('submissions')
           .select('count')
           .limit(1)
-
+        
         if (error) {
           dbError = error.message
           dbStatus = 'ERROR'
@@ -51,7 +51,7 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
     // Check security script status
     const securityScriptPath = path.join(process.cwd(), 'scripts', 'security-check.js')
     const scriptExists = fs.existsSync(securityScriptPath)
-
+    
     let securityStatus = {
       scriptExists,
       secrets: { status: 'NOT TESTED', issues: 0, details: '' },
@@ -65,15 +65,15 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
       try {
         // Run npm audit for dependency check
         try {
-          const auditResult = execSync('npm audit --audit-level=moderate --json', {
-            encoding: 'utf8',
-            stdio: 'pipe'
+          const auditResult = execSync('npm audit --audit-level=moderate --json', { 
+            encoding: 'utf8', 
+            stdio: 'pipe' 
           })
           const auditData = JSON.parse(auditResult)
           const vulnCount = Object.keys(auditData.vulnerabilities || {}).length
-
-          securityStatus.dependencies = {
-            status: vulnCount > 0 ? 'WARN' : 'PASS',
+          
+          securityStatus.dependencies = { 
+            status: vulnCount > 0 ? 'WARN' : 'PASS', 
             issues: vulnCount,
             details: vulnCount > 0 ? `${vulnCount} vulnerabilities found` : 'No vulnerabilities'
           }
@@ -81,22 +81,22 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
         } catch (auditError) {
           // npm audit returns non-zero exit code for vulnerabilities
           try {
-            const auditResult = execSync('npm audit --audit-level=moderate --json', {
-              encoding: 'utf8',
-              stdio: 'pipe'
+            const auditResult = execSync('npm audit --audit-level=moderate --json', { 
+              encoding: 'utf8', 
+              stdio: 'pipe' 
             })
             const auditData = JSON.parse(auditResult)
             const vulnCount = Object.keys(auditData.vulnerabilities || {}).length
-
-            securityStatus.dependencies = {
-              status: vulnCount > 0 ? 'WARN' : 'PASS',
+            
+            securityStatus.dependencies = { 
+              status: vulnCount > 0 ? 'WARN' : 'PASS', 
               issues: vulnCount,
               details: vulnCount > 0 ? `${vulnCount} vulnerabilities found` : 'No vulnerabilities'
             }
             securityStatus.totalIssues += vulnCount
           } catch (parseError) {
-            securityStatus.dependencies = {
-              status: 'ERROR',
+            securityStatus.dependencies = { 
+              status: 'ERROR', 
               issues: 1,
               details: 'Could not parse audit results'
             }
@@ -120,8 +120,8 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
           }
         }
 
-        securityStatus.secrets = {
-          status: missingFiles === 0 ? 'PASS' : 'WARN',
+        securityStatus.secrets = { 
+          status: missingFiles === 0 ? 'PASS' : 'WARN', 
           issues: missingFiles,
           details: missingFiles === 0 ? 'All security files present' : `${missingFiles} security files missing`
         }
@@ -130,7 +130,7 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
         // Check TypeScript security patterns (basic check)
         const srcFiles = ['src/app', 'src/components', 'src/lib']
         let unsafePatterns = 0
-
+        
         for (const srcFile of srcFiles) {
           try {
             const files = fs.readdirSync(path.join(process.cwd(), srcFile), { recursive: true })
@@ -139,7 +139,7 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
                 try {
                   const filePath = path.join(process.cwd(), srcFile, file)
                   const content = fs.readFileSync(filePath, 'utf8')
-
+                  
                   // Check for unsafe patterns
                   if (content.includes('any[') || content.includes('eval(') || content.includes('innerHTML')) {
                     unsafePatterns++
@@ -154,8 +154,8 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
           }
         }
 
-        securityStatus.typescript = {
-          status: unsafePatterns === 0 ? 'PASS' : 'WARN',
+        securityStatus.typescript = { 
+          status: unsafePatterns === 0 ? 'PASS' : 'WARN', 
           issues: unsafePatterns,
           details: unsafePatterns === 0 ? 'No unsafe patterns found' : `${unsafePatterns} unsafe patterns detected`
         }
@@ -164,7 +164,7 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
         // Check API routes for authentication
         const apiRoutesPath = path.join(process.cwd(), 'src/app/api')
         let unsecuredRoutes = 0
-
+        
         if (fs.existsSync(apiRoutesPath)) {
           const apiRoutes = fs.readdirSync(apiRoutesPath, { recursive: true })
           for (const route of apiRoutes) {
@@ -172,7 +172,7 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
               try {
                 const routePath = path.join(apiRoutesPath, route)
                 const content = fs.readFileSync(routePath, 'utf8')
-
+                
                 // Check if route has authentication
                 if (!content.includes('auth') && !content.includes('token') && !content.includes('jwt') && !content.includes('verify')) {
                   // Skip if it's a public route
@@ -187,8 +187,8 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
           }
         }
 
-        securityStatus.api = {
-          status: unsecuredRoutes === 0 ? 'PASS' : 'WARN',
+        securityStatus.api = { 
+          status: unsecuredRoutes === 0 ? 'PASS' : 'WARN', 
           issues: unsecuredRoutes,
           details: unsecuredRoutes === 0 ? 'All API routes secured' : `${unsecuredRoutes} unsecured API routes`
         }
@@ -227,4 +227,4 @@ export const GET = withAdminAuth(async (request: NextRequest) => {
       timestamp: new Date().toISOString()
     }, { status: 500 })
   }
-})
+}

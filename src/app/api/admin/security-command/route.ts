@@ -87,7 +87,7 @@ export const POST = withAdminAuth(async (request: NextRequest) => {
     } catch (error: any) {
       // Some security commands return non-zero exit codes even when successful
       const output = error.stdout || error.message || 'Command failed'
-      
+
       return NextResponse.json({
         success: false,
         command: commandName,
@@ -99,13 +99,10 @@ export const POST = withAdminAuth(async (request: NextRequest) => {
 
   } catch (error: any) {
     console.error('Security command API error:', error)
-    return NextResponse.json(
-      { 
-        error: 'Failed to execute security command',
-        details: error.message,
-        timestamp: new Date().toISOString()
-      },
-      { status: 500 }
-    )
+    return NextResponse.json({
+      error: 'Failed to execute security command',
+      details: error.message,
+      timestamp: new Date().toISOString()
+    }, { status: 500 })
   }
-}
+})
