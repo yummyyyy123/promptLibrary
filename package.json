@@ -17,6 +17,8 @@
     "security:secrets": "gitleaks detect --no-git --source .",
     "security:check": "node scripts/security-check.js",
     "security:full": "npm run security:check && npm run security:audit && npm run security:secrets",
+    "vulnerability:scan": "curl -s https://api.github.com/advisories?ecosystem=npm&per_page=50&sort=published&direction=desc",
+    "vulnerability:intelligence": "npm run vulnerability:scan && npm run security:audit",
     "pre-commit": "npm run security:check && npm run lint && npm run type-check",
     "pre-push": "npm run security:full && npm run test:security",
     "db:migrate": "supabase db push",
