@@ -29,7 +29,9 @@ export async function POST(request: NextRequest) {
   try {
     console.log('🔐 Login attempt received')
     
-    const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown'
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+               request.headers.get('x-real-ip') ||
+               'unknown'
     
     // Check rate limiting
     if (!checkRateLimit(ip)) {
