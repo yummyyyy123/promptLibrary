@@ -1,5 +1,12 @@
-import TestPage from '../test/page'
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function TestingPage() {
-  return <TestPage />
+  const router = useRouter()
+  useEffect(() => {
+    router.replace('/admin/security')
+  }, [router])
+  return null
 }

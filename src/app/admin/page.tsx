@@ -26,17 +26,18 @@ export default function AdminPanel() {
   useEffect(() => {
     fetchData()
     fetchApprovedPrompts()
-    
+
     // Prevent back button access after logout
     if (typeof window !== 'undefined') {
-      const preventBackButton = () => {
+      const preventBack = () => {
         window.history.pushState(null, '', window.location.href)
-        window.addEventListener('popstate', function(event) {
-          window.history.pushState(null, '', window.location.href)
-        })
       }
-      
-      preventBackButton()
+      window.addEventListener('popstate', preventBack)
+      preventBack()
+
+      return () => {
+        window.removeEventListener('popstate', preventBack)
+      }
     }
   }, [])
 
@@ -163,17 +164,17 @@ export default function AdminPanel() {
         localStorage.removeItem('adminUser')
         sessionStorage.clear()
       }
-      
+
       // Call logout API
       await fetch('/api/admin/auth', { method: 'DELETE' })
-      
+
       // Redirect to login
       router.push('/admin/login')
-      
+
       // Prevent back button after logout
       if (typeof window !== 'undefined') {
         window.history.pushState(null, '', '/admin/login')
-        window.addEventListener('popstate', function(event) {
+        window.addEventListener('popstate', function (event) {
           window.history.pushState(null, '', '/admin/login')
         })
       }
@@ -190,7 +191,7 @@ export default function AdminPanel() {
   const filteredSubmissions = submissions.filter(submission => {
     if (filterStatus === 'all') return true
     return submission.status === filterStatus
-  }).filter(submission => 
+  }).filter(submission =>
     submission.title.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
@@ -324,7 +325,7 @@ export default function AdminPanel() {
                   </div>
                   <select
                     value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value as any)}
+                    onChange={(e) => setFilterStatus(e.target.value as 'all' | 'pending' | 'approved' | 'rejected')}
                     className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   >
                     <option value="all">All</option>
@@ -352,11 +353,10 @@ export default function AdminPanel() {
                           <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs font-medium rounded-full">
                             {submission.category}
                           </span>
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            submission.status === 'pending' ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200' :
-                            submission.status === 'approved' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
-                            'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
-                          }`}>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${submission.status === 'pending' ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200' :
+                              submission.status === 'approved' ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200' :
+                                'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+                            }`}>
                             {submission.status}
                           </span>
                           <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -454,13 +454,13 @@ export default function AdminPanel() {
                   <p className="text-gray-600 dark:text-gray-400">No approved prompts yet</p>
                 </div>
               )}
-              
+
               {loadingApproved && approvedPrompts.length === 0 && (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-r-2 border-t-2 border-l-2 border-emerald-500"></div>
                 </div>
               )}
-              
+
               {!loadingApproved && approvedPrompts.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {approvedPrompts.map((prompt, index) => (
