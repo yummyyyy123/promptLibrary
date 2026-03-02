@@ -56,21 +56,27 @@ export async function POST(request: NextRequest) {
     const origin = request.headers.get('origin') || ''
     const host = request.headers.get('host') || ''
     const userAgent = request.headers.get('user-agent') || ''
-    
+
     console.log(`🌐 Request headers: origin=${origin}, host=${host}`)
-    
-    // Validate origin
+
+    // Validate origin — allow localhost and any vercel.app deployment of this project
     const allowedOrigins = [
       'https://prompt-library-three-wheat.vercel.app',
+      'https://prompt-library-ktt2.vercel.app',
       'http://localhost:3000',
       'https://localhost:3000'
     ]
-    
-    if (!allowedOrigins.includes(origin) && !origin.includes('localhost')) {
+
+    const isAllowed =
+      allowedOrigins.includes(origin) ||
+      origin.includes('localhost') ||
+      /^https:\/\/prompt-library[a-z0-9-]*\.vercel\.app$/.test(origin)
+
+    if (!isAllowed) {
       console.log(`❌ Unauthorized origin: ${origin}`)
       return NextResponse.json(
         { error: 'Unauthorized origin' },
-        { 
+        {
           status: 403,
           headers: setSecurityHeaders(origin)
         }
@@ -82,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     // Input validation
     if (!email || typeof email !== 'string') {
-      return NextResponse.json({ error: 'Email address required' }, { 
+      return NextResponse.json({ error: 'Email address required' }, {
         status: 400,
         headers: setSecurityHeaders(origin)
       })
@@ -93,7 +99,7 @@ export async function POST(request: NextRequest) {
     if (!emailRegex.test(email)) {
       return NextResponse.json({
         error: 'Invalid email address format'
-      }, { 
+      }, {
         status: 400,
         headers: setSecurityHeaders(origin)
       })
@@ -104,7 +110,7 @@ export async function POST(request: NextRequest) {
       console.log(`❌ Rate limit exceeded for: ${email}`)
       return NextResponse.json({
         error: 'Too many requests. Please try again later.'
-      }, { 
+      }, {
         status: 429,
         headers: setSecurityHeaders(origin)
       })
@@ -116,14 +122,14 @@ export async function POST(request: NextRequest) {
       console.log(`❌ Unauthorized email attempt: ${email}`)
       return NextResponse.json({
         error: 'Unauthorized email address'
-      }, { 
+      }, {
         status: 403,
         headers: setSecurityHeaders(origin)
       })
     }
 
     // Generate cryptographically secure OTP
-    const otp = Array.from({ length: 6 }, () => 
+    const otp = Array.from({ length: 6 }, () =>
       Math.floor(Math.random() * 10).toString()
     ).join('')
 
@@ -220,9 +226,9 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('❌ Email endpoint error:', error)
-    return NextResponse.json({ 
-      error: 'Internal server error' 
-    }, { 
+    return NextResponse.json({
+      error: 'Internal server error'
+    }, {
       status: 500,
       headers: setSecurityHeaders(request.headers.get('origin') || '')
     })
@@ -232,7 +238,7 @@ export async function POST(request: NextRequest) {
 // Handle OPTIONS requests for CORS
 export async function OPTIONS(request: NextRequest) {
   const origin = request.headers.get('origin') || ''
-  
+
   return NextResponse.json({}, {
     status: 200,
     headers: setSecurityHeaders(origin)
