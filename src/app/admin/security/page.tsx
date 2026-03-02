@@ -321,6 +321,29 @@ export default function SecurityTestingPage() {
                         </motion.div>
                     </div>
 
+                    {/* Test Coverage Explanation */}
+                    <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-5 mb-8">
+                        <h2 className="text-sm font-bold text-gray-300 mb-4 flex items-center gap-2 uppercase tracking-wider">
+                            <Activity className="w-4 h-4 text-blue-400" />
+                            Audit Scope & Test Coverage
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {[
+                                { name: 'Rate Limiting', desc: 'Prevents brute force by throttling rapid requests.' },
+                                { name: 'Secret Detection', desc: 'Scans for hardcoded keys and sensitive tokens.' },
+                                { name: 'OTP Validation', desc: 'Verifies 2FA expiration and reuse protection.' },
+                                { name: 'Input Sanitization', desc: 'Blocks XSS and malicious injection attempts.' },
+                                { name: 'Security Headers', desc: 'Checks for CSP, HSTS, and Frame-Options.' },
+                                { name: 'Dependency Audit', desc: 'Scans npm packages for known vulnerabilities.' }
+                            ].map((test) => (
+                                <div key={test.name} className="p-3 bg-gray-900/60 rounded-lg border border-gray-700/50">
+                                    <p className="text-xs font-bold text-emerald-400 mb-1">{test.name}</p>
+                                    <p className="text-[10px] text-gray-500 leading-relaxed">{test.desc}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
                     {/* 1-Tap Security Test Controller */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}

@@ -4,6 +4,7 @@ import { EmailOTP } from '@/lib/emailOTP'
 import { execSync } from 'child_process'
 import fs from 'fs'
 import path from 'path'
+import os from 'os'
 
 export async function GET(request: NextRequest) {
   return handleSecurityTests(request)
@@ -98,8 +99,9 @@ async function handleSecurityTests(request: NextRequest) {
 
         let secretsDetected = 0
         for (const testFile of testFiles) {
-          // Create temporary test file
-          const tempPath = path.join(process.cwd(), testFile.name)
+          // Create temporary test file in /tmp or system temp dir
+          const tempDir = os.tmpdir()
+          const tempPath = path.join(tempDir, testFile.name)
           fs.writeFileSync(tempPath, testFile.content)
 
           try {

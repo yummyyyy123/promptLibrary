@@ -14,19 +14,25 @@ interface AdminAuthResult {
 
 export function authenticateAdmin(request: NextRequest): AdminAuthResult {
   try {
-    // Get authorization header
+    // Get authorization header or cookie
     const authHeader = request.headers.get('authorization')
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return { success: false, error: 'Missing or invalid authorization header' }
+    const cookieToken = request.cookies.get('admin-token')?.value
+
+    let token = ''
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7)
+    } else if (cookieToken) {
+      token = cookieToken
     }
 
-    const token = authHeader.substring(7) // Remove 'Bearer ' prefix
+    if (!token) {
+      return { success: false, error: 'Missing or invalid authentication' }
+    }
 
     try {
       // Verify JWT token
       const decoded = jwt.verify(token, JWT_SECRET) as any
-      
+
       // Check if token is for admin
       if (decoded.username !== ADMIN_USERNAME) {
         return { success: false, error: 'Invalid admin credentials' }
@@ -55,7 +61,7 @@ export function generateAdminToken(username: string, password: string): AdminAut
 
     // Generate JWT token
     const token = jwt.sign(
-      { 
+      {
         username: ADMIN_USERNAME,
         role: 'admin',
         iat: Math.floor(Date.now() / 1000),
@@ -74,10 +80,10 @@ export function generateAdminToken(username: string, password: string): AdminAut
 export function withAdminAuth(handler: (req: NextRequest) => Promise<NextResponse>) {
   return async (request: NextRequest): Promise<NextResponse> => {
     const auth = authenticateAdmin(request)
-    
+
     if (!auth.success) {
       return NextResponse.json(
-        { 
+        {
           error: 'Unauthorized',
           message: auth.error,
           timestamp: new Date().toISOString()
@@ -88,13 +94,13 @@ export function withAdminAuth(handler: (req: NextRequest) => Promise<NextRespons
 
     // Add security headers
     const response = await handler(request)
-    
+
     // Add security headers to response
     response.headers.set('X-Content-Type-Options', 'nosniff')
     response.headers.set('X-Frame-Options', 'DENY')
     response.headers.set('X-XSS-Protection', '1; mode=block')
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-    
+
     return response
   }
 }

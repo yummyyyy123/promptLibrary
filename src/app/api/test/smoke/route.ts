@@ -3,6 +3,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { EmailOTP } from '@/lib/emailOTP'
 
 export async function GET(request: NextRequest) {
+  return handleSmokeTests(request)
+}
+
+export async function POST(request: NextRequest) {
+  return handleSmokeTests(request)
+}
+
+async function handleSmokeTests(request: NextRequest) {
   const results = {
     timestamp: new Date().toISOString(),
     tests: [] as any[],
@@ -14,14 +22,14 @@ export async function GET(request: NextRequest) {
     try {
       const otp = EmailOTP.generateOTP()
       const passed = otp.length === 6 && /^\d{6}$/.test(otp)
-      
+
       results.tests.push({
         name: 'Email OTP Generation',
         status: passed ? 'PASS' : 'FAIL',
         details: `Generated OTP: ${otp}`,
         duration: 0
       })
-      
+
       if (passed) results.summary.passed++
       else results.summary.failed++
     } catch (error: any) {
@@ -40,16 +48,16 @@ export async function GET(request: NextRequest) {
       const testOTP = '123456'
       const stored = await EmailOTP.storeOTP(testEmail, testOTP)
       const verified = await EmailOTP.verifyOTP(testEmail, testOTP)
-      
+
       const passed = stored && verified
-      
+
       results.tests.push({
         name: 'Email OTP Storage & Verification',
         status: passed ? 'PASS' : 'FAIL',
         details: `Stored: ${stored}, Verified: ${verified}`,
         duration: 0
       })
-      
+
       if (passed) results.summary.passed++
       else results.summary.failed++
     } catch (error: any) {
@@ -71,16 +79,16 @@ export async function GET(request: NextRequest) {
         adminUsername: process.env.ADMIN_USERNAME ? 'SET' : 'NOT SET',
         adminPassword: process.env.ADMIN_PASSWORD ? 'SET' : 'NOT SET'
       }
-      
+
       const passed = Object.values(env).every(v => v === 'SET')
-      
+
       results.tests.push({
         name: 'Environment Variables',
         status: passed ? 'PASS' : 'FAIL',
         details: env,
         duration: 0
       })
-      
+
       if (passed) results.summary.passed++
       else results.summary.failed++
     } catch (error: any) {
@@ -100,7 +108,7 @@ export async function GET(request: NextRequest) {
         '/api/admin/auth/2fa-login',
         '/api/admin/auth'
       ]
-      
+
       let passedCount = 0
       for (const endpoint of endpoints) {
         try {
@@ -113,16 +121,16 @@ export async function GET(request: NextRequest) {
           passedCount++
         }
       }
-      
+
       const passed = passedCount === endpoints.length
-      
+
       results.tests.push({
         name: 'API Endpoints Health',
         status: passed ? 'PASS' : 'FAIL',
         details: `${passedCount}/${endpoints.length} endpoints healthy`,
         duration: 0
       })
-      
+
       if (passed) results.summary.passed++
       else results.summary.failed++
     } catch (error: any) {
@@ -139,16 +147,16 @@ export async function GET(request: NextRequest) {
     try {
       const metrics = EmailOTP.getSecurityMetrics()
       const sessionMetrics = (EmailOTP as any).getSessionMetrics?.() || { totalSessions: 0 }
-      
+
       const passed = typeof metrics.totalOTPs === 'number' && typeof sessionMetrics.totalSessions === 'number'
-      
+
       results.tests.push({
         name: 'Memory Usage Check',
         status: passed ? 'PASS' : 'FAIL',
         details: `OTPs: ${metrics.totalOTPs}, Sessions: ${sessionMetrics.totalSessions}`,
         duration: 0
       })
-      
+
       if (passed) results.summary.passed++
       else results.summary.failed++
     } catch (error: any) {
