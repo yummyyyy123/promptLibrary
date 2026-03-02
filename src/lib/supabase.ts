@@ -1,52 +1,17 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 // Lazy initialization of Supabase client
-let supabaseClient: ReturnType<typeof createClient> | null = null
+let supabaseClient: SupabaseClient | null = null
 
-function getSupabaseClient() {
+function getSupabaseClient(): SupabaseClient {
   if (!supabaseClient) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY
 
     if (!supabaseUrl || !supabaseServiceKey) {
-      console.warn('Supabase environment variables not set, using mock client')
-      // Return a mock client for build time
-      supabaseClient = {
-        from: () => ({
-          select: () => ({
-            order: () => ({
-              single: () => Promise.resolve({ data: null, error: null }),
-              eq: () => ({
-                single: () => Promise.resolve({ data: null, error: null }),
-                order: () => ({
-                  single: () => Promise.resolve({ data: null, error: null })
-                })
-              })
-            }),
-            eq: () => ({
-              single: () => Promise.resolve({ data: null, error: null }),
-              select: () => ({
-                single: () => Promise.resolve({ data: null, error: null })
-              })
-            })
-          }),
-          insert: () => ({
-            select: () => ({
-              single: () => Promise.resolve({ data: null, error: null })
-            })
-          }),
-          update: () => ({
-            eq: () => ({
-              select: () => ({
-                single: () => Promise.resolve({ data: null, error: null })
-              })
-            })
-          }),
-          delete: () => ({
-            eq: () => Promise.resolve({ error: null })
-          })
-        })
-      } as any
+      console.warn('Supabase environment variables not set, using mock client for build compatibility')
+      // Create a minimal mock client that satisfies the SupabaseClient interface
+      supabaseClient = createClient('https://mock.supabase.co', 'mock-key')
     } else {
       supabaseClient = createClient(supabaseUrl, supabaseServiceKey)
     }
@@ -54,7 +19,7 @@ function getSupabaseClient() {
   return supabaseClient
 }
 
-// Export the lazy-initialized client
+// Export the lazy-initialized client - guaranteed to never be null
 export const supabase = getSupabaseClient()
 
 // Database types
