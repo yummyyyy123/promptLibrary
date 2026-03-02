@@ -11,6 +11,7 @@ export default function AdminPanel() {
   const [submissions, setSubmissions] = useState<PromptSubmission[]>([])
   const [stats, setStats] = useState<SubmissionStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [selectedSubmission, setSelectedSubmission] = useState<PromptSubmission | null>(null)
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -19,6 +20,7 @@ export default function AdminPanel() {
   const [rejectionId, setRejectionId] = useState('')
   const [approvedPrompts, setApprovedPrompts] = useState<any[]>([])
   const [loadingApproved, setLoadingApproved] = useState(true)
+  const [showDeleteAllConfirmation, setShowDeleteAllConfirmation] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -58,8 +60,9 @@ export default function AdminPanel() {
       const data = await response.json()
       setSubmissions(data.submissions)
       setStats(data.stats)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching admin data:', error)
+      setFetchError('Failed to load submissions. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -288,8 +291,16 @@ export default function AdminPanel() {
             </div>
           )}
 
+          {/* Error Message */}
+          {fetchError && (
+            <div className="text-center py-12">
+              <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+              <p className="text-red-600 text-lg">{fetchError}</p>
+            </div>
+          )}
+
           {/* Submissions List */}
-          {!loading && filteredSubmissions.length === 0 && (
+          {!loading && !fetchError && filteredSubmissions.length === 0 && (
             <div className="text-center py-12">
               <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600 dark:text-gray-400 text-lg">No submissions found</p>
@@ -400,7 +411,7 @@ export default function AdminPanel() {
                   Manage published prompts
                 </div>
                 <button
-                  onClick={handleDeleteAllApproved}
+                  onClick={() => setShowDeleteAllConfirmation(true)}
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={approvedPrompts.length === 0}
                   title="Delete all approved prompts"
@@ -409,7 +420,34 @@ export default function AdminPanel() {
                 </button>
               </div>
             </div>
-            
+
+            {showDeleteAllConfirmation && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 max-w-2xl w-full"
+                >
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Confirm Delete All</h3>
+                  <p className="text-gray-700 dark:text-gray-300 mb-4">Are you sure you want to delete all approved prompts? This action cannot be undone.</p>
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={() => setShowDeleteAllConfirmation(false)}
+                      className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDeleteAllApproved}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                    >
+                      Confirm Delete All
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
               {!loadingApproved && approvedPrompts.length === 0 && (
                 <div className="text-center py-8">
