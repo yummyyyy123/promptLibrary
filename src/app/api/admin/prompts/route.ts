@@ -8,7 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
 function authenticate(request: NextRequest): boolean {
   try {
     const token = request.cookies.get('admin-token')?.value
-    
+
     if (!token) {
       return false
     }
@@ -17,6 +17,79 @@ function authenticate(request: NextRequest): boolean {
     return decoded.role === 'admin'
   } catch (error) {
     return false
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    if (!authenticate(request)) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const body = await request.json()
+
+    // Sanitize input data
+    const { sanitizeObject } = await import('@/utils/sanitation')
+    const sanitizedBody = sanitizeObject(body)
+
+    const { title, description, category, tags, prompt, variables } = sanitizedBody
+
+    if (!title || !description || !category || !prompt) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      )
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_KEY
+
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json(
+        { error: 'Supabase credentials not configured' },
+        { status: 500 }
+      )
+    }
+
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    const { data, error } = await supabase
+      .from('prompts')
+      .insert({
+        title,
+        description,
+        category,
+        tags: tags || [],
+        prompt,
+        variables: variables || [],
+        usage_count: 0,
+        is_favorite: false
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error('💥 ADMIN: Insert prompt error:', error)
+      return NextResponse.json(
+        { error: 'Failed to create prompt' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      message: 'Prompt created successfully',
+      prompt: data
+    })
+  } catch (error) {
+    console.error('💥 ADMIN: POST critical error:', error)
+    return NextResponse.json(
+      { error: 'Failed to create prompt' },
+      { status: 500 }
+    )
   }
 }
 

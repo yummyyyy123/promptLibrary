@@ -8,7 +8,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
 function authenticate(request: NextRequest): boolean {
   try {
     const token = request.cookies.get('admin-token')?.value
-    
+
     if (!token) {
       return false
     }
@@ -17,6 +17,66 @@ function authenticate(request: NextRequest): boolean {
     return decoded.role === 'admin'
   } catch (error) {
     return false
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    if (!authenticate(request)) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const { searchParams } = new URL(request.url)
+    const submissionId = searchParams.get('id')
+
+    if (!submissionId) {
+      return NextResponse.json(
+        { error: 'Submission ID is required' },
+        { status: 400 }
+      )
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_KEY
+
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json(
+        { error: 'Supabase credentials not configured' },
+        { status: 500 }
+      )
+    }
+
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    const { data, error } = await supabase
+      .from('submissions')
+      .delete()
+      .eq('id', submissionId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('💥 ADMIN: Delete submission error:', error)
+      return NextResponse.json(
+        { error: 'Failed to delete submission' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      message: 'Submission deleted successfully',
+      submission: data
+    })
+  } catch (error) {
+    console.error('💥 ADMIN: DELETE critical error:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete submission' },
+      { status: 500 }
+    )
   }
 }
 
