@@ -32,6 +32,10 @@ export async function POST(request: NextRequest) {
         npmCommand = 'npm run security:full'
         commandName = 'Full Security Suite'
         break
+      case 'quick':
+        npmCommand = 'npm run security:check'
+        commandName = 'Quick Security Check'
+        break
       case 'env':
         npmCommand = 'npm run env:check'
         commandName = 'Environment Check'
@@ -39,6 +43,22 @@ export async function POST(request: NextRequest) {
       case 'test':
         npmCommand = 'npm run test:security'
         commandName = 'Security Tests'
+        break
+      case 'deps':
+        npmCommand = 'npm run security:deps'
+        commandName = 'Dependency Fix'
+        break
+      case 'lint':
+        npmCommand = 'npm run lint'
+        commandName = 'Code Linting'
+        break
+      case 'typecheck':
+        npmCommand = 'npm run type-check'
+        commandName = 'TypeScript Check'
+        break
+      case 'build':
+        npmCommand = 'npm run build'
+        commandName = 'Production Build'
         break
       default:
         return NextResponse.json(
@@ -53,7 +73,7 @@ export async function POST(request: NextRequest) {
       const output = execSync(npmCommand, {
         encoding: 'utf8',
         stdio: 'pipe',
-        timeout: 60000 // 60 second timeout
+        timeout: 120000 // 2 minute timeout for longer commands
       })
 
       return NextResponse.json({

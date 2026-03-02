@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Shield, AlertTriangle, CheckCircle, XCircle, RefreshCw, Database, Globe, Key, Activity, Play, ChevronRight, X } from 'lucide-react'
+import { Shield, AlertTriangle, CheckCircle, XCircle, RefreshCw, Database, Globe, Key, Activity, Play, ChevronRight, X, Zap } from 'lucide-react'
 
 interface DebugInfo {
   timestamp: string
@@ -280,6 +280,32 @@ export default function AdminDebug() {
             Security Testing Commands
           </h2>
           <div className="space-y-4">
+            {/* Quick Actions */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              <button
+                onClick={() => runSecurityCommand('full')}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+              >
+                <Play className="w-4 h-4" />
+                Run Full Security Suite
+              </button>
+              <button
+                onClick={() => runSecurityCommand('quick')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                <Zap className="w-4 h-4" />
+                Quick Security Check
+              </button>
+              <button
+                onClick={() => fetchDebugInfo()}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Refresh Status
+              </button>
+            </div>
+
+            {/* Individual Commands Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <button
                 onClick={() => runSecurityCommand('check')}
@@ -324,20 +350,6 @@ export default function AdminDebug() {
               </button>
 
               <button
-                onClick={() => runSecurityCommand('full')}
-                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
-              >
-                <div className="text-left">
-                  <p className="font-medium text-gray-900 dark:text-white text-sm">Full Security Suite</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Complete security check</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Play className="w-4 h-4 text-green-600 group-hover:text-green-700" />
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
-                </div>
-              </button>
-
-              <button
                 onClick={() => runSecurityCommand('env')}
                 className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
               >
@@ -364,6 +376,62 @@ export default function AdminDebug() {
                   <ChevronRight className="w-4 h-4 text-gray-400" />
                 </div>
               </button>
+
+              <button
+                onClick={() => runSecurityCommand('deps')}
+                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
+              >
+                <div className="text-left">
+                  <p className="font-medium text-gray-900 dark:text-white text-sm">Dependency Fix</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Auto-fix vulnerabilities</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Play className="w-4 h-4 text-green-600 group-hover:text-green-700" />
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </div>
+              </button>
+
+              <button
+                onClick={() => runSecurityCommand('lint')}
+                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
+              >
+                <div className="text-left">
+                  <p className="font-medium text-gray-900 dark:text-white text-sm">Code Linting</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">ESLint validation</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Play className="w-4 h-4 text-cyan-600 group-hover:text-cyan-700" />
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </div>
+              </button>
+
+              <button
+                onClick={() => runSecurityCommand('typecheck')}
+                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
+              >
+                <div className="text-left">
+                  <p className="font-medium text-gray-900 dark:text-white text-sm">Type Check</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">TypeScript validation</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Play className="w-4 h-4 text-orange-600 group-hover:text-orange-700" />
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </div>
+              </button>
+
+              <button
+                onClick={() => runSecurityCommand('build')}
+                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
+              >
+                <div className="text-left">
+                  <p className="font-medium text-gray-900 dark:text-white text-sm">Build Test</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Production build</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Play className="w-4 h-4 text-pink-600 group-hover:text-pink-700" />
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </div>
+              </button>
             </div>
 
             {/* Command Output */}
@@ -378,7 +446,7 @@ export default function AdminDebug() {
                     <X className="w-4 h-4" />
                   </button>
                 </div>
-                <pre className="text-xs text-gray-300 font-mono whitespace-pre-wrap overflow-x-auto">
+                <pre className="text-xs text-gray-300 font-mono whitespace-pre-wrap overflow-x-auto max-h-96 overflow-y-auto">
                   {commandOutput}
                 </pre>
               </div>
