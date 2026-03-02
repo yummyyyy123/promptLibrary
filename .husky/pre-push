@@ -1,8 +1,19 @@
 # Pre-push hook for comprehensive security validation
 echo "🔒 Running pre-push security checks..."
 
-# Temporarily skip security checks for push
-echo "⚠️  Security checks temporarily disabled for integration push"
+# Run full security suite
+npm run security:full
+if [ $? -ne 0 ]; then
+    echo "❌ Security checks failed. Push aborted."
+    exit 1
+fi
+
+# Run security tests
+npm run test:security
+if [ $? -ne 0 ]; then
+    echo "❌ Security tests failed. Push aborted."
+    exit 1
+fi
 
 echo "✅ All pre-push checks passed!"
 exit 0

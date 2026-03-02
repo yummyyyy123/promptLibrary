@@ -1,8 +1,19 @@
 # Pre-commit hook for security validation
 echo "🔒 Running pre-commit security checks..."
 
-# Temporarily skip security check for commit
-echo "⚠️  Security check temporarily disabled for integration commit"
+# Run security check
+npm run security:check
+if [ $? -ne 0 ]; then
+    echo "❌ Security check failed. Commit aborted."
+    exit 1
+fi
+
+# Run linter
+npm run lint
+if [ $? -ne 0 ]; then
+    echo "❌ Linting failed. Commit aborted."
+    exit 1
+fi
 
 echo "✅ All pre-commit checks passed!"
 exit 0
