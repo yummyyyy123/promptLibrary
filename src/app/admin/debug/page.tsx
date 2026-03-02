@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Shield, AlertTriangle, CheckCircle, XCircle, RefreshCw, Database, Globe, Key, Activity, Play, ChevronRight, X, Zap } from 'lucide-react'
+import { Shield, AlertTriangle, CheckCircle, XCircle, RefreshCw, Database, Globe, Key, Activity, Play, ChevronRight, X, Zap, GitBranch, Server, Bug, TestTube, CheckSquare } from 'lucide-react'
 import AdminAuthCheck from '@/components/AdminAuthCheck'
 
 interface DebugInfo {
@@ -483,6 +483,35 @@ export default function AdminDebug() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Play className="w-4 h-4 text-pink-600 group-hover:text-pink-700" />
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  </div>
+                </button>
+
+                {/* QA Tool Additions */}
+                <button
+                  onClick={() => runSecurityCommand('jest')}
+                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
+                >
+                  <div className="text-left">
+                    <p className="font-medium text-gray-900 dark:text-white text-sm">Unit Tests</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Run QA suite</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <TestTube className="w-4 h-4 text-fuchsia-600 group-hover:text-fuchsia-700" />
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => runSecurityCommand('qa')}
+                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
+                >
+                  <div className="text-left">
+                    <p className="font-medium text-gray-900 dark:text-white text-sm">QA Sanity Check</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Full end-to-end mock</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckSquare className="w-4 h-4 text-teal-600 group-hover:text-teal-700" />
                     <ChevronRight className="w-4 h-4 text-gray-400" />
                   </div>
                 </button>

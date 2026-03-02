@@ -6,6 +6,14 @@ import fs from 'fs'
 import path from 'path'
 
 export async function GET(request: NextRequest) {
+  return handleSecurityTests(request)
+}
+
+export async function POST(request: NextRequest) {
+  return handleSecurityTests(request)
+}
+
+async function handleSecurityTests(request: NextRequest) {
   const results = {
     timestamp: new Date().toISOString(),
     tests: [] as any[],
@@ -22,32 +30,32 @@ export async function GET(request: NextRequest) {
       const testEmail = `ratelimit-${Date.now()}@test.com`
       let requestCount = 0
       let blocked = false
-      
+
       // First request should work
       const firstStored = await EmailOTP.storeOTP(testEmail, '123456')
       console.log(`📊 First request result: ${firstStored}`)
       if (firstStored) requestCount++
-      
+
       // Small delay to ensure timestamp difference
       await new Promise(resolve => setTimeout(resolve, 10))
-      
+
       // Immediate second request should be blocked (1-minute cooldown)
       const secondStored = await EmailOTP.storeOTP(testEmail, '123457')
       console.log(`📊 Second request result: ${secondStored}`)
       if (!secondStored) {
         blocked = true
       }
-      
+
       const passed = firstStored && !secondStored // First works, second blocked
       console.log(`📊 Rate limiting test passed: ${passed}`)
-      
+
       results.tests.push({
         name: 'Rate Limiting',
         status: passed ? 'PASS' : 'FAIL',
         details: `First request: ${firstStored}, Second blocked: ${!secondStored}, Cooldown working: ${blocked}`,
         severity: 'HIGH'
       })
-      
+
       if (passed) results.summary.passed++
       else results.summary.failed++
     } catch (error: any) {
@@ -64,7 +72,7 @@ export async function GET(request: NextRequest) {
     // Test 2: Security Check Script Integration
     try {
       console.log('🔍 Testing security check script...')
-      
+
       const securityCheckResults = {
         secrets: { status: 'PASS', issues: 0, details: '' },
         environment: { status: 'PASS', issues: 0, details: '' },
@@ -72,11 +80,11 @@ export async function GET(request: NextRequest) {
         typescript: { status: 'PASS', issues: 0, details: '' },
         api: { status: 'PASS', issues: 0, details: '' }
       }
-      
+
       // Check if security script exists and is executable
       const securityScriptPath = path.join(process.cwd(), 'scripts', 'security-check.js')
       const scriptExists = fs.existsSync(securityScriptPath)
-      
+
       if (!scriptExists) {
         securityCheckResults.secrets = { status: 'FAIL', issues: 1, details: 'Security script not found' }
         securityCheckResults.environment = { status: 'FAIL', issues: 1, details: 'Security script not found' }
@@ -87,13 +95,13 @@ export async function GET(request: NextRequest) {
           { name: 'test-api.js', content: 'const apiKey = "sk-1234567890abcdef";' },
           { name: 'test-env.js', content: 'process.env.SECRET_KEY = "hardcoded";' }
         ]
-        
+
         let secretsDetected = 0
         for (const testFile of testFiles) {
           // Create temporary test file
           const tempPath = path.join(process.cwd(), testFile.name)
           fs.writeFileSync(tempPath, testFile.content)
-          
+
           try {
             // Read file content and check for secret patterns (simplified version)
             const content = fs.readFileSync(tempPath, 'utf8')
@@ -103,7 +111,7 @@ export async function GET(request: NextRequest) {
               /secret[_-]?key\s*[:=]\s*['"`][^'"`]{16,}['"`]/i,
               /token\s*[:=]\s*['"`][^'"`]{16,}['"`]/i
             ]
-            
+
             for (const pattern of secretPatterns) {
               if (pattern.test(content)) {
                 secretsDetected++
@@ -120,40 +128,40 @@ export async function GET(request: NextRequest) {
             }
           }
         }
-        
+
         if (secretsDetected > 0) {
-          securityCheckResults.secrets = { 
-            status: 'PASS', 
-            issues: 0, 
-            details: `Security check correctly detected ${secretsDetected} secret patterns` 
+          securityCheckResults.secrets = {
+            status: 'PASS',
+            issues: 0,
+            details: `Security check correctly detected ${secretsDetected} secret patterns`
           }
         } else {
-          securityCheckResults.secrets = { 
-            status: 'WARN', 
-            issues: 1, 
-            details: 'Security check did not detect expected test secrets' 
+          securityCheckResults.secrets = {
+            status: 'WARN',
+            issues: 1,
+            details: 'Security check did not detect expected test secrets'
           }
         }
       }
-      
+
       // Test npm audit
       try {
-        const auditResult = execSync('npm audit --audit-level=moderate --json', { 
-          encoding: 'utf8', 
-          stdio: 'pipe' 
+        const auditResult = execSync('npm audit --audit-level=moderate --json', {
+          encoding: 'utf8',
+          stdio: 'pipe'
         })
         const auditData = JSON.parse(auditResult)
         const vulnCount = Object.keys(auditData.vulnerabilities || {}).length
-        
+
         if (vulnCount > 0) {
-          securityCheckResults.dependencies = { 
-            status: 'WARN', 
+          securityCheckResults.dependencies = {
+            status: 'WARN',
             issues: vulnCount,
             details: `${vulnCount} vulnerabilities found`
           }
         } else {
-          securityCheckResults.dependencies = { 
-            status: 'PASS', 
+          securityCheckResults.dependencies = {
+            status: 'PASS',
             issues: 0,
             details: 'No vulnerabilities found'
           }
@@ -161,31 +169,31 @@ export async function GET(request: NextRequest) {
       } catch (auditError) {
         // npm audit returns non-zero exit code for vulnerabilities
         try {
-          const auditResult = execSync('npm audit --audit-level=moderate --json', { 
-            encoding: 'utf8', 
-            stdio: 'pipe' 
+          const auditResult = execSync('npm audit --audit-level=moderate --json', {
+            encoding: 'utf8',
+            stdio: 'pipe'
           })
           const auditData = JSON.parse(auditResult)
           const vulnCount = Object.keys(auditData.vulnerabilities || {}).length
-          
-          securityCheckResults.dependencies = { 
-            status: vulnCount > 0 ? 'WARN' : 'PASS', 
+
+          securityCheckResults.dependencies = {
+            status: vulnCount > 0 ? 'WARN' : 'PASS',
             issues: vulnCount,
             details: vulnCount > 0 ? `${vulnCount} vulnerabilities found` : 'No vulnerabilities'
           }
         } catch (parseError) {
-          securityCheckResults.dependencies = { 
-            status: 'ERROR', 
+          securityCheckResults.dependencies = {
+            status: 'ERROR',
             issues: 1,
             details: 'Could not parse audit results'
           }
         }
       }
-      
+
       // Calculate overall security check status
       const totalIssues = Object.values(securityCheckResults).reduce((sum: number, result: any) => sum + result.issues, 0)
       const securityCheckPassed = scriptExists && totalIssues === 0
-      
+
       results.tests.push({
         name: 'Security Check Script',
         status: securityCheckPassed ? 'PASS' : totalIssues > 0 ? 'WARN' : 'FAIL',
@@ -193,10 +201,10 @@ export async function GET(request: NextRequest) {
         severity: 'HIGH',
         components: securityCheckResults
       })
-      
+
       if (securityCheckPassed) results.summary.passed++
       else results.summary.failed++
-      
+
     } catch (error: any) {
       console.error('❌ Security check script test error:', error)
       results.tests.push({
@@ -212,28 +220,28 @@ export async function GET(request: NextRequest) {
     try {
       const testEmail = 'expire@test.com'
       const testOTP = '999999'
-      
+
       // Store OTP
       await EmailOTP.storeOTP(testEmail, testOTP)
-      
+
       // Wait a short time (simulate expiration check)
       await new Promise(resolve => setTimeout(resolve, 100))
-      
+
       // Verify OTP should work
       const validNow = await EmailOTP.verifyOTP(testEmail, testOTP)
-      
+
       // Test with wrong OTP
       const invalidOTP = await EmailOTP.verifyOTP(testEmail, '000000')
-      
+
       const passed = validNow && !invalidOTP
-      
+
       results.tests.push({
         name: 'OTP Expiration & Validation',
         status: passed ? 'PASS' : 'FAIL',
         details: `Valid OTP works: ${validNow}, Invalid OTP rejected: ${!invalidOTP}`,
         severity: 'HIGH'
       })
-      
+
       if (passed) results.summary.passed++
       else results.summary.failed++
     } catch (error: any) {
@@ -255,30 +263,30 @@ export async function GET(request: NextRequest) {
         { email: '<script>alert("xss")</script>@test.com', valid: false },
         { email: 'test+tag@test.com', valid: true }
       ]
-      
+
       let passed = true
       const results_detail = []
-      
+
       for (const testCase of testCases) {
         // Enhanced email validation that blocks script tags and malicious content
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
         const hasScriptTags = /<script|<\/script>|javascript:|on\w+=/i.test(testCase.email)
         const isValid = emailRegex.test(testCase.email) && !hasScriptTags
-        
+
         if (isValid !== testCase.valid) {
           passed = false
         }
-        
+
         results_detail.push(`${testCase.email}: ${isValid} (expected: ${testCase.valid})`)
       }
-      
+
       results.tests.push({
         name: 'Input Validation',
         status: passed ? 'PASS' : 'FAIL',
         details: results_detail,
         severity: 'MEDIUM'
       })
-      
+
       if (passed) results.summary.passed++
       else results.summary.failed++
     } catch (error: any) {
@@ -296,14 +304,14 @@ export async function GET(request: NextRequest) {
       console.log('🔍 Testing security headers...')
       const url = new URL(request.url)
       const testUrl = `${url.protocol}//${url.host}/api/admin/auth/email-otp`
-      
-      const response = await fetch(testUrl, { 
+
+      const response = await fetch(testUrl, {
         method: 'OPTIONS',
         headers: { 'Origin': url.origin }
       })
-      
+
       console.log(`📊 Security headers response status: ${response.status}`)
-      
+
       const headers = {
         'access-control-allow-origin': response.headers.get('access-control-allow-origin'),
         'x-content-type-options': response.headers.get('x-content-type-options'),
@@ -311,25 +319,25 @@ export async function GET(request: NextRequest) {
         'x-xss-protection': response.headers.get('x-xss-protection'),
         'referrer-policy': response.headers.get('referrer-policy')
       }
-      
+
       console.log(`📊 Security headers found:`, headers)
-      
+
       // Check for required headers (case-insensitive)
       const requiredHeaders = ['x-content-type-options', 'x-frame-options']
       const passed = requiredHeaders.every(header => {
         const value = response.headers.get(header)
         return value !== null && value !== undefined && value !== ''
       })
-      
+
       console.log(`📊 Security headers test passed: ${passed}`)
-      
+
       results.tests.push({
         name: 'Security Headers',
         status: passed ? 'PASS' : 'FAIL',
         details: headers,
         severity: 'MEDIUM'
       })
-      
+
       if (passed) results.summary.passed++
       else results.summary.failed++
     } catch (error: any) {
@@ -348,17 +356,17 @@ export async function GET(request: NextRequest) {
       console.log('🔍 Testing brute force protection...')
       const testEmail = 'bruteforce@test.com'
       const correctOTP = '123456'
-      
+
       // Store correct OTP
       await EmailOTP.storeOTP(testEmail, correctOTP)
-      
+
       // Try wrong OTPs multiple times
       let attempts = 0
       let blocked = false
-      
+
       for (let i = 0; i < 4; i++) {
         const result = await EmailOTP.verifyOTP(testEmail, `00000${i}`)
-        console.log(`📊 Attempt ${i+1} result: ${result}`)
+        console.log(`📊 Attempt ${i + 1} result: ${result}`)
         attempts++
         if (!result && i >= 2) {
           // Should be blocked after 3 attempts
@@ -366,21 +374,21 @@ export async function GET(request: NextRequest) {
           break
         }
       }
-      
+
       // Try correct OTP - should fail if blocked
       const finalResult = await EmailOTP.verifyOTP(testEmail, correctOTP)
       console.log(`📊 Final correct OTP result: ${finalResult}`)
-      
+
       const passed = blocked && !finalResult
       console.log(`📊 Brute force test passed: ${passed}`)
-      
+
       results.tests.push({
         name: 'Brute Force Protection',
         status: passed ? 'PASS' : 'FAIL',
         details: `Attempts: ${attempts}, Blocked: ${blocked}, Final result: ${finalResult}`,
         severity: 'HIGH'
       })
-      
+
       if (passed) results.summary.passed++
       else results.summary.failed++
     } catch (error: any) {
@@ -398,28 +406,28 @@ export async function GET(request: NextRequest) {
     try {
       console.log('🔍 Testing session security...')
       const testEmail = 'session@test.com'
-      
+
       // Test session creation and validation
       const metrics = EmailOTP.getSecurityMetrics()
       console.log(`📊 Security metrics:`, metrics)
       const hasMetrics = typeof metrics.totalOTPs === 'number'
-      
+
       // Test cleanup functionality
       EmailOTP.cleanupExpiredOTPs()
       const metricsAfterCleanup = EmailOTP.getSecurityMetrics()
       console.log(`📊 Metrics after cleanup:`, metricsAfterCleanup)
       const cleanupWorks = typeof metricsAfterCleanup.totalOTPs === 'number'
-      
+
       const passed = hasMetrics && cleanupWorks
       console.log(`📊 Session security test passed: ${passed}`)
-      
+
       results.tests.push({
         name: 'Session Security',
         status: passed ? 'PASS' : 'FAIL',
         details: `Has metrics: ${hasMetrics}, Cleanup works: ${cleanupWorks}`,
         severity: 'MEDIUM'
       })
-      
+
       if (passed) results.summary.passed++
       else results.summary.failed++
     } catch (error: any) {
