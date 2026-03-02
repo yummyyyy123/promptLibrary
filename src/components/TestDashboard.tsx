@@ -93,12 +93,17 @@ export default function TestDashboard() {
       console.log(`📋 Response data:`, data)
       
       if (testType === 'all') {
-        setResults(data.results)
-        analyzeIssues(data.results)
+        const allResults = {
+          ...data.results,
+          tests: data.results?.tests || []
+        }
+        setResults(allResults)
+        analyzeIssues(allResults)
       } else {
         // Mock structure for individual tests
         const mockResults = {
           timestamp: data.timestamp || new Date().toISOString(),
+          tests: data.results?.tests || [],
           pipeline: {
             smoke: testType === 'smoke' ? data.results : null,
             security: testType === 'security' ? data.results : null,
