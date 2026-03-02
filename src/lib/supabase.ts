@@ -1,10 +1,61 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Supabase client configuration
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!
+// Lazy initialization of Supabase client
+let supabaseClient: ReturnType<typeof createClient> | null = null
 
-export const supabase = createClient(supabaseUrl, supabaseServiceKey)
+function getSupabaseClient() {
+  if (!supabaseClient) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.warn('Supabase environment variables not set, using mock client')
+      // Return a mock client for build time
+      supabaseClient = {
+        from: () => ({
+          select: () => ({
+            order: () => ({
+              single: () => Promise.resolve({ data: null, error: null }),
+              eq: () => ({
+                single: () => Promise.resolve({ data: null, error: null }),
+                order: () => ({
+                  single: () => Promise.resolve({ data: null, error: null })
+                })
+              })
+            }),
+            eq: () => ({
+              single: () => Promise.resolve({ data: null, error: null }),
+              select: () => ({
+                single: () => Promise.resolve({ data: null, error: null })
+              })
+            })
+          }),
+          insert: () => ({
+            select: () => ({
+              single: () => Promise.resolve({ data: null, error: null })
+            })
+          }),
+          update: () => ({
+            eq: () => ({
+              select: () => ({
+                single: () => Promise.resolve({ data: null, error: null })
+              })
+            })
+          }),
+          delete: () => ({
+            eq: () => Promise.resolve({ error: null })
+          })
+        })
+      } as any
+    } else {
+      supabaseClient = createClient(supabaseUrl, supabaseServiceKey)
+    }
+  }
+  return supabaseClient
+}
+
+// Export the lazy-initialized client
+export const supabase = getSupabaseClient()
 
 // Database types
 export interface DatabasePrompt {
