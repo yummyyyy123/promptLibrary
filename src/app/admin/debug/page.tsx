@@ -11,6 +11,14 @@ interface DebugInfo {
     status: string
     error: string | null
   }
+  security: {
+    scriptExists: boolean
+    secrets: { status: string; issues: number; details: string }
+    dependencies: { status: string; issues: number; details: string }
+    typescript: { status: string; issues: number; details: string }
+    api: { status: string; issues: number; details: string }
+    totalIssues: number
+  }
   message: string
 }
 
@@ -156,6 +164,81 @@ export default function AdminDebug() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Security Check Status */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <Shield className="w-5 h-5 text-purple-600" />
+            Security Check Status
+          </h2>
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg gap-3 sm:gap-0">
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">Security Script</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {debugInfo?.security?.scriptExists ? 'Security check script available' : 'Security script not found'}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {getStatusIcon(debugInfo?.security?.scriptExists ? 'PASS' : 'FAIL')}
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(debugInfo?.security?.scriptExists ? 'PASS' : 'FAIL')}`}>
+                  {debugInfo?.security?.scriptExists ? 'AVAILABLE' : 'MISSING'}
+                </span>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span className="text-sm font-medium text-gray-900 dark:text-white">Secret Detection</span>
+                <div className="flex items-center gap-2">
+                  {getStatusIcon(debugInfo?.security?.secrets?.status || 'UNKNOWN')}
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(debugInfo?.security?.secrets?.status || 'UNKNOWN')}`}>
+                    {debugInfo?.security?.secrets?.status || 'UNKNOWN'}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span className="text-sm font-medium text-gray-900 dark:text-white">Dependencies</span>
+                <div className="flex items-center gap-2">
+                  {getStatusIcon(debugInfo?.security?.dependencies?.status || 'UNKNOWN')}
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(debugInfo?.security?.dependencies?.status || 'UNKNOWN')}`}>
+                    {debugInfo?.security?.dependencies?.status || 'UNKNOWN'}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span className="text-sm font-medium text-gray-900 dark:text-white">TypeScript</span>
+                <div className="flex items-center gap-2">
+                  {getStatusIcon(debugInfo?.security?.typescript?.status || 'UNKNOWN')}
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(debugInfo?.security?.typescript?.status || 'UNKNOWN')}`}>
+                    {debugInfo?.security?.typescript?.status || 'UNKNOWN'}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <span className="text-sm font-medium text-gray-900 dark:text-white">API Security</span>
+                <div className="flex items-center gap-2">
+                  {getStatusIcon(debugInfo?.security?.api?.status || 'UNKNOWN')}
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(debugInfo?.security?.api?.status || 'UNKNOWN')}`}>
+                    {debugInfo?.security?.api?.status || 'UNKNOWN'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            {debugInfo?.security?.totalIssues && debugInfo.security.totalIssues > 0 && (
+              <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <p className="font-medium text-amber-800 dark:text-amber-200 mb-2 text-sm sm:text-base">Security Issues:</p>
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                  Found {debugInfo.security.totalIssues} security issue(s) that need attention
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

@@ -701,6 +701,74 @@ export default function TestDashboard() {
           </h2>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Security Check Script Status */}
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-purple-500" />
+                Security Check Script
+              </h3>
+              <div className="space-y-3">
+                {results.tests.find((test: any) => test.name === 'Security Check Script') ? (
+                  (() => {
+                    const securityTest = results.tests.find((test: any) => test.name === 'Security Check Script')
+                    return (
+                      <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="font-medium text-slate-700 dark:text-slate-300">Security Script Status</span>
+                          <div className="flex items-center gap-2">
+                            {getStatusIcon(securityTest.status)}
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(securityTest.status)}`}>
+                              {securityTest.status}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {securityTest.components && (
+                          <div className="space-y-2 mb-3">
+                            {Object.entries(securityTest.components).map(([key, component]: [string, any]) => (
+                              <div key={key} className="flex items-center justify-between p-2 bg-white dark:bg-slate-600 rounded">
+                                <span className="text-sm font-medium text-slate-600 dark:text-slate-300 capitalize">
+                                  {key.replace(/([A-Z])/g, ' $1').trim()}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  {getStatusIcon(component.status)}
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(component.status)}`}>
+                                    {component.status}
+                                  </span>
+                                  {component.issues > 0 && (
+                                    <span className="text-xs text-amber-600 dark:text-amber-400">
+                                      ({component.issues})
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        <div className="text-sm text-slate-600 dark:text-slate-400">
+                          <p className="font-medium mb-1">Details:</p>
+                          <p className="text-xs font-mono bg-slate-100 dark:bg-slate-600 p-2 rounded">
+                            {securityTest.details}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })()
+                ) : (
+                  <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600">
+                    <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                      <AlertTriangle className="w-4 h-4" />
+                      <span className="font-medium">Security Check Script Not Tested</span>
+                    </div>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
+                      Run the security test suite to check script status
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Website Security Features */}
             <div>
               <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">

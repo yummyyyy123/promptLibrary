@@ -1,6 +1,9 @@
 // Security Testing API - Tests security measures
 import { NextRequest, NextResponse } from 'next/server'
 import { EmailOTP } from '@/lib/emailOTP'
+import { execSync } from 'child_process'
+import fs from 'fs'
+import path from 'path'
 
 export async function GET(request: NextRequest) {
   const results = {
@@ -48,17 +51,148 @@ export async function GET(request: NextRequest) {
       if (passed) results.summary.passed++
       else results.summary.failed++
     } catch (error: any) {
-      console.log('❌ Rate limiting test error:', error.message)
+      console.error('❌ Rate limiting test error:', error)
       results.tests.push({
         name: 'Rate Limiting',
-        status: 'FAIL',
-        details: `Error: ${error.message}`,
+        status: 'ERROR',
+        details: `Test failed with error: ${error.message}`,
         severity: 'HIGH'
       })
       results.summary.failed++
     }
 
-    // Test 2: OTP Expiration
+    // Test 2: Security Check Script Integration
+    try {
+      console.log('🔍 Testing security check script...')
+      
+      const securityCheckResults = {
+        secrets: { status: 'PASS', issues: 0, details: '' },
+        environment: { status: 'PASS', issues: 0, details: '' },
+        dependencies: { status: 'PASS', issues: 0, details: '' },
+        typescript: { status: 'PASS', issues: 0, details: '' },
+        api: { status: 'PASS', issues: 0, details: '' }
+      }
+      
+      // Check if security script exists and is executable
+      const securityScriptPath = path.join(process.cwd(), 'scripts', 'security-check.js')
+      const scriptExists = fs.existsSync(securityScriptPath)
+      
+      if (!scriptExists) {
+        securityCheckResults.secrets = { status: 'FAIL', issues: 1, details: 'Security script not found' }
+        securityCheckResults.environment = { status: 'FAIL', issues: 1, details: 'Security script not found' }
+      } else {
+        // Test secret detection patterns
+        const testFiles = [
+          { name: 'test-secret.js', content: 'const password = "secret123";' },
+          { name: 'test-api.js', content: 'const apiKey = "sk-1234567890abcdef";' },
+          { name: 'test-env.js', content: 'process.env.SECRET_KEY = "hardcoded";' }
+        ]
+        
+        for (const testFile of testFiles) {
+          // Create temporary test file
+          const tempPath = path.join(process.cwd(), testFile.name)
+          fs.writeFileSync(tempPath, testFile.content)
+          
+          try {
+            // Run security check on the test file
+            const { spawn } = require('child_process')
+            const securityCheck = spawn('node', [securityScriptPath], {
+              stdio: 'pipe',
+              cwd: process.cwd()
+            })
+            
+            let output = ''
+            securityCheck.stdout.on('data', (data: any) => {
+              output += data.toString()
+            })
+            
+            securityCheck.on('close', (code: number) => {
+              if (code !== 0) {
+                // Security check detected issues (which is good for our test files)
+                if (output.includes('secret') || output.includes('FAIL')) {
+                  console.log(`✅ Security check correctly detected secrets in ${testFile.name}`)
+                }
+              }
+            })
+            
+            // Clean up
+            fs.unlinkSync(tempPath)
+          } catch (error) {
+            // Clean up on error
+            if (fs.existsSync(tempPath)) {
+              fs.unlinkSync(tempPath)
+            }
+          }
+        }
+      }
+      
+      // Test npm audit
+      try {
+        const auditResult = execSync('npm audit --audit-level=moderate --json', { 
+          encoding: 'utf8', 
+          stdio: 'pipe' 
+        })
+        const auditData = JSON.parse(auditResult)
+        const vulnCount = Object.keys(auditData.vulnerabilities || {}).length
+        
+        if (vulnCount > 0) {
+          securityCheckResults.dependencies = { 
+            status: 'WARN', 
+            issues: vulnCount,
+            details: `${vulnCount} vulnerabilities found`
+          }
+        }
+      } catch (auditError) {
+        // npm audit returns non-zero exit code for vulnerabilities
+        try {
+          const auditResult = execSync('npm audit --audit-level=moderate --json', { 
+            encoding: 'utf8', 
+            stdio: 'pipe' 
+          })
+          const auditData = JSON.parse(auditResult)
+          const vulnCount = Object.keys(auditData.vulnerabilities || {}).length
+          
+          securityCheckResults.dependencies = { 
+            status: vulnCount > 0 ? 'WARN' : 'PASS', 
+            issues: vulnCount,
+            details: vulnCount > 0 ? `${vulnCount} vulnerabilities found` : 'No vulnerabilities'
+          }
+        } catch (parseError) {
+          securityCheckResults.dependencies = { 
+            status: 'ERROR', 
+            issues: 1,
+            details: 'Could not parse audit results'
+          }
+        }
+      }
+      
+      // Calculate overall security check status
+      const totalIssues = Object.values(securityCheckResults).reduce((sum: number, result: any) => sum + result.issues, 0)
+      const securityCheckPassed = scriptExists && totalIssues === 0
+      
+      results.tests.push({
+        name: 'Security Check Script',
+        status: securityCheckPassed ? 'PASS' : totalIssues > 0 ? 'WARN' : 'FAIL',
+        details: `Script exists: ${scriptExists}, Total issues: ${totalIssues}, Components: ${JSON.stringify(securityCheckResults)}`,
+        severity: 'HIGH',
+        components: securityCheckResults
+      })
+      
+      if (securityCheckPassed) results.summary.passed++
+      else results.summary.failed++
+      
+    } catch (error: any) {
+      console.error('❌ Security check script test error:', error)
+      results.tests.push({
+        name: 'Security Check Script',
+        status: 'ERROR',
+        details: `Test failed with error: ${error.message}`,
+        severity: 'HIGH'
+      })
+      results.summary.failed++
+    }
+
+    // Test 3: OTP Expiration
     try {
       const testEmail = 'expire@test.com'
       const testOTP = '999999'

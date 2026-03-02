@@ -15,7 +15,7 @@
     "security:audit": "npm audit --audit-level=moderate",
     "security:deps": "npm audit fix",
     "security:secrets": "gitleaks detect --no-git --source .",
-    "security:check": "call scripts/security-check.bat",
+    "security:check": "node scripts/security-check.js",
     "security:full": "npm run security:check && npm run security:audit && npm run security:secrets",
     "pre-commit": "npm run security:check && npm run lint && npm run type-check",
     "pre-push": "npm run security:full && npm run test:security",
