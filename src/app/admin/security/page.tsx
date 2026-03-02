@@ -191,14 +191,6 @@ export default function SecurityTestingPage() {
         // Real security test results will be added below from testResults.tests
         // The mock issues below are kept as fallback or deleted if real data is sufficient
 
-        foundIssues.push({
-            type: 'Missing Security Headers',
-            severity: 'medium',
-            description: 'API endpoint `/api/test` does not have strict CORS origin headers enforced.',
-            component: 'API Layer',
-            recommendation: 'Add `Access-Control-Allow-Origin` specific domains instead of `*` in the Next.js API response headers.'
-        })
-
         testResults.tests.forEach(test => {
             if (test.status === 'FAIL' || test.status === 'ERROR') {
                 foundIssues.push({
