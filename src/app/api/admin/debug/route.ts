@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { withAdminAuth } from '@/lib/admin-auth'
 import { execSync } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 
-export async function GET() {
+export const GET = withAdminAuth(async (request: NextRequest) => {
   try {
     // Check environment variables
     const env = {

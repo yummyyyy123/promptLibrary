@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { execSync } from 'child_process'
+import { withAdminAuth } from '@/lib/admin-auth'
 
-export async function POST(request: NextRequest) {
+export const POST = withAdminAuth(async (request: NextRequest) => {
   try {
     const { action, package: packageName } = await request.json()
     
