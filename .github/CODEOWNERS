@@ -1,0 +1,52 @@
+# CODEOWNERS File
+# Specifies which individuals or teams are responsible for code review
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global code owners - can approve any changes
+* @security-team @admin-team
+
+# Security-sensitive files require security team approval
+/api/ @security-team
+/supabase/ @security-team
+/scripts/ @security-team
+/migrations/ @security-team
+*.env* @security-team
+.env* @security-team
+.gitleaks.toml @security-team
+.github/workflows/security.yml @security-team
+
+# Database and infrastructure files
+/supabase/migrations/ @security-team @database-team
+/supabase/functions/ @security-team
+/docker-compose.yml @security-team @infrastructure-team
+
+# Configuration files
+next.config.js @security-team
+tailwind.config.js @frontend-team
+tsconfig.json @frontend-team
+package.json @security-team @frontend-team
+
+# Documentation
+README.md @documentation-team
+/docs/ @documentation-team
+
+# Frontend files
+/src/app/ @frontend-team
+/src/components/ @frontend-team
+/src/lib/ @frontend-team
+/src/hooks/ @frontend-team
+/src/styles/ @frontend-team
+
+# Test files
+/__tests__/ @frontend-team @security-team
+/test/ @frontend-team @security-team
+*.test.* @frontend-team @security-team
+*.spec.* @frontend-team @security-team
+
+# Build and deployment
+/vercel.json @security-team @infrastructure-team
+/.github/workflows/ @security-team @infrastructure-team
+
+# Default fallback - requires at least one team member approval
+# Comment this out if you want to make all files require approval
+# * @team-name

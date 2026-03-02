@@ -6,7 +6,25 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "type-check": "tsc --noEmit",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:security": "playwright test --project=security",
+    "security:audit": "npm audit --audit-level=moderate",
+    "security:deps": "npm audit fix",
+    "security:secrets": "gitleaks detect --no-git --source .",
+    "security:check": "call scripts/security-check.bat",
+    "security:full": "npm run security:check && npm run security:audit && npm run security:secrets",
+    "pre-commit": "npm run security:check && npm run lint && npm run type-check",
+    "pre-push": "npm run security:full && npm run test:security",
+    "db:migrate": "supabase db push",
+    "db:reset": "supabase db reset",
+    "db:types": "supabase gen types typescript --local > src/lib/database.types.ts",
+    "env:check": "node scripts/check-env.js",
+    "postinstall": "husky install",
+    "prepare": "husky"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -42,6 +60,26 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "gitleaks": "^1.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.1",
+    "snyk": "^1.1303.0",
     "typescript": "^5"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "npm run security:check",
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "pre-push": "npm run security:full"
+    }
   }
 }
