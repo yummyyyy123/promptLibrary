@@ -197,7 +197,7 @@ export default function TestPage() {
       case 'WARN':
         return <AlertTriangle className="w-5 h-5 text-amber-600" />
       default:
-        return <AlertCircle className="w-5 h-5 text-gray-400" />
+        return <AlertIcon className="w-5 h-5 text-gray-400" />
     }
   }
 
