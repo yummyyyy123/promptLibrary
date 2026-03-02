@@ -53,6 +53,9 @@ export default function SecurityTestingPage() {
     const [runningCommand, setRunningCommand] = useState<string>('')
     const [vulnerabilities, setVulnerabilities] = useState<any[]>([])
     const [isFetchingVulnerabilities, setIsFetchingVulnerabilities] = useState(false)
+    const [vulnerabilityData, setVulnerabilityData] = useState<any>(null)
+    const [isApplyingFix, setIsApplyingFix] = useState(false)
+    const [fixOutput, setFixOutput] = useState<string | null>(null)
 
     const runSecurityCommand = async (command: string) => {
         setIsRunningCommand(true)
@@ -74,6 +77,45 @@ export default function SecurityTestingPage() {
         } finally {
             setIsRunningCommand(false)
             setRunningCommand('')
+        }
+    }
+
+    const fetchVulnerabilityIntelligence = async () => {
+        setIsFetchingVulnerabilities(true)
+        try {
+            const response = await fetch('/api/admin/vulnerability-intelligence')
+            if (response.ok) {
+                const data = await response.json()
+                setVulnerabilityData(data)
+                setVulnerabilities(data.vulnerablePackages || [])
+            }
+        } catch (error) {
+            console.error('Failed to fetch vulnerability intelligence:', error)
+        } finally {
+            setIsFetchingVulnerabilities(false)
+        }
+    }
+
+    const applySecurityFix = async (action: string, packageName?: string) => {
+        setIsApplyingFix(true)
+        setFixOutput(null)
+
+        try {
+            const response = await fetch('/api/admin/security-actions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action, package: packageName }),
+            })
+
+            if (response.ok) {
+                const data = await response.json()
+                setFixOutput(JSON.stringify(data, null, 2))
+                await fetchVulnerabilityIntelligence()
+            }
+        } catch (error: any) {
+            setFixOutput(`Error: ${error.message}`)
+        } finally {
+            setIsApplyingFix(false)
         }
     }
 
@@ -137,19 +179,11 @@ export default function SecurityTestingPage() {
         }
     }
 
-    const fetchVulnerabilities = async () => {
-        setIsFetchingVulnerabilities(true)
-        try {
-            const response = await fetch('/api/admin/vulnerability-intelligence')
-            if (!response.ok) throw new Error('Failed to fetch vulnerabilities')
-            const data = await response.json()
-            setVulnerabilities(data.vulnerablePackages || [])
-        } catch (error) {
-            console.error('Error fetching vulnerabilities:', error)
-        } finally {
-            setIsFetchingVulnerabilities(false)
-        }
-    }
+    useEffect(() => {
+        fetchVulnerabilityIntelligence()
+    }, [])
+
+    const fetchVulnerabilities = fetchVulnerabilityIntelligence
 
     const analyzeIssues = (testResults: TestResults) => {
         const foundIssues: IssueDetail[] = []
@@ -277,17 +311,32 @@ export default function SecurityTestingPage() {
                             </div>
                         </motion.div>
 
-                        {/* Live Vulnerability Feed */}
+                        {/* Enhanced Threat Intelligence */}
                         <motion.div
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             className="bg-gray-800/60 border border-gray-700 rounded-xl p-5 sm:p-6"
                         >
                             <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                                <Search className="w-5 h-5 text-purple-400" />
-                                Tech Stack Vulnerability Feed
+                                <Shield className="w-5 h-5 text-red-400" />
+                                Threat Intelligence & Health Score
                             </h2>
-                            <p className="text-xs text-gray-400 mb-4">Latest CVEs related to your specific framework versions.</p>
+
+                            {/* Health Score */}
+                            <div className="mb-6 p-4 bg-gray-900/40 rounded-lg border border-gray-700/50">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm font-medium text-gray-400">Security Health Score</span>
+                                    <span className={`text-xl font-bold ${vulnerabilityData?.securityHealthScore >= 80 ? 'text-emerald-400' : vulnerabilityData?.securityHealthScore >= 60 ? 'text-amber-400' : 'text-red-400'}`}>
+                                        {vulnerabilityData?.securityHealthScore || 0}/100
+                                    </span>
+                                </div>
+                                <div className="w-full bg-gray-800 rounded-full h-2">
+                                    <div
+                                        className={`h-2 rounded-full transition-all duration-500 ${vulnerabilityData?.securityHealthScore >= 80 ? 'bg-emerald-500' : vulnerabilityData?.securityHealthScore >= 60 ? 'bg-amber-500' : 'bg-red-500'}`}
+                                        style={{ width: `${vulnerabilityData?.securityHealthScore || 0}%` }}
+                                    ></div>
+                                </div>
+                            </div>
 
                             <div className="space-y-3">
                                 {isFetchingVulnerabilities ? (
@@ -295,19 +344,28 @@ export default function SecurityTestingPage() {
                                         <RefreshCw className="w-6 h-6 text-purple-400 animate-spin" />
                                     </div>
                                 ) : vulnerabilities.length > 0 ? (
-                                    vulnerabilities.map((vuln, idx) => (
+                                    vulnerabilities.map((vuln: any, idx: number) => (
                                         <div key={idx} className={`p-3 rounded-lg border ${getSeverityColor(vuln.severity.toLowerCase())}`}>
                                             <div className="flex items-center justify-between mb-1">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="font-mono text-xs font-bold">{vuln.advisory.ghsa_id}</span>
+                                                    <span className="font-mono text-xs font-bold">{vuln.advisory.ghsa_id || 'CVE'}</span>
                                                     <span className="text-xs text-white opacity-80 bg-black/20 px-2 py-0.5 rounded">{vuln.affectedPackage}</span>
                                                 </div>
                                                 <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold ${getSeverityColor(vuln.severity.toLowerCase())}`}>
                                                     {vuln.severity}
                                                 </span>
                                             </div>
-                                            <p className="text-xs opacity-80">{vuln.advisory.summary}</p>
-                                            <p className="text-[10px] text-emerald-400 mt-1 font-mono">{vuln.recommendedAction}</p>
+                                            <p className="text-xs opacity-80 mb-2">{vuln.advisory.summary}</p>
+                                            <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-white/5">
+                                                <p className="text-[10px] text-emerald-400 font-mono truncate">{vuln.recommendedAction}</p>
+                                                <button
+                                                    onClick={() => applySecurityFix('update-package', vuln.affectedPackage)}
+                                                    disabled={isApplyingFix}
+                                                    className="flex-shrink-0 px-2 py-1 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 text-[10px] font-bold rounded border border-emerald-500/30 transition-colors disabled:opacity-50"
+                                                >
+                                                    {isApplyingFix ? 'Fixing...' : 'Fix Now'}
+                                                </button>
+                                            </div>
                                         </div>
                                     ))
                                 ) : (
@@ -318,7 +376,57 @@ export default function SecurityTestingPage() {
                                     </div>
                                 )}
                             </div>
+
+                            {/* Threat Intel Actions */}
+                            <div className="grid grid-cols-2 gap-2 mt-4">
+                                <button
+                                    onClick={() => applySecurityFix('audit-fix')}
+                                    disabled={isApplyingFix}
+                                    className="px-3 py-2 bg-gray-900/60 hover:bg-gray-900 text-gray-300 text-xs rounded border border-gray-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                >
+                                    <Zap className="w-3 h-3 text-amber-400" />
+                                    Audit Fix
+                                </button>
+                                <button
+                                    onClick={() => fetchVulnerabilityIntelligence()}
+                                    disabled={isFetchingVulnerabilities}
+                                    className="px-3 py-2 bg-gray-900/60 hover:bg-gray-900 text-gray-300 text-xs rounded border border-gray-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                >
+                                    <RefreshCw className={`w-3 h-3 text-blue-400 ${isFetchingVulnerabilities ? 'animate-spin' : ''}`} />
+                                    Retest Stack
+                                </button>
+                            </div>
                         </motion.div>
+                    </div>
+
+                    {/* Security Operations Console */}
+                    <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-6 mb-8">
+                        <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                            <Activity className="w-5 h-5 text-blue-400" />
+                            Security Operations Console
+                        </h2>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            {[
+                                { name: 'Full Audit', cmd: 'full', icon: Shield, color: 'text-emerald-400' },
+                                { name: 'Quick Check', cmd: 'quick', icon: Zap, color: 'text-yellow-400' },
+                                { name: 'Secret Scan', cmd: 'secrets', icon: Lock, color: 'text-red-400' },
+                                { name: 'Dep. Audit', cmd: 'audit', icon: Search, color: 'text-blue-400' },
+                                { name: 'Type Check', cmd: 'typecheck', icon: CheckSquare, color: 'text-orange-400' },
+                                { name: 'Linter', cmd: 'lint', icon: FileText, color: 'text-cyan-400' },
+                                { name: 'Build Test', cmd: 'build', icon: Activity, color: 'text-pink-400' },
+                                { name: 'QA Sanity', cmd: 'qa', icon: CheckSquare, color: 'text-teal-400' },
+                            ].map((op) => (
+                                <button
+                                    key={op.name}
+                                    onClick={() => runSecurityCommand(op.cmd)}
+                                    disabled={isRunningCommand}
+                                    className="p-3 bg-gray-900/60 hover:bg-gray-900 border border-gray-700 rounded-lg transition-all flex flex-col items-center gap-2 group disabled:opacity-50"
+                                >
+                                    <op.icon className={`w-5 h-5 ${op.color} group-hover:scale-110 transition-transform`} />
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{op.name}</span>
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Test Coverage Explanation */}
@@ -376,6 +484,45 @@ export default function SecurityTestingPage() {
                     )}
 
                     {/* Results */}
+                    {/* Global Command/Fix Outputs */}
+                    {(commandOutput || fixOutput || isRunningCommand || isApplyingFix) && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="bg-gray-900 border border-gray-700 rounded-xl overflow-hidden mb-8 shadow-2xl"
+                        >
+                            <div className="bg-gray-800 px-4 py-2 border-b border-gray-700 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Terminal className="w-4 h-4 text-gray-400" />
+                                    <span className="text-xs font-bold text-gray-300 uppercase tracking-widest">
+                                        {isRunningCommand ? `Running: ${runningCommand}` : isApplyingFix ? 'Executing Security Fix' : 'Operation Output'}
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setCommandOutput(null)
+                                        setFixOutput(null)
+                                    }}
+                                    className="text-gray-500 hover:text-white transition-colors"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                            <div className="p-4 overflow-hidden">
+                                {(isRunningCommand || isApplyingFix) && !commandOutput && !fixOutput ? (
+                                    <div className="flex items-center gap-3 py-4 text-blue-400">
+                                        <RefreshCw className="w-5 h-5 animate-spin" />
+                                        <span className="text-sm font-medium animate-pulse">Processing request on secure kernel...</span>
+                                    </div>
+                                ) : (
+                                    <pre className="text-xs font-mono text-emerald-400/90 whitespace-pre-wrap max-h-96 overflow-y-auto custom-scrollbar">
+                                        {commandOutput || fixOutput}
+                                    </pre>
+                                )}
+                            </div>
+                        </motion.div>
+                    )}
+
                     {results && !loading && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -409,7 +556,7 @@ export default function SecurityTestingPage() {
                                         Detected Issues ({issues.length})
                                     </h2>
                                     <div className="space-y-3">
-                                        {issues.map((issue, i) => (
+                                        {issues.map((issue: any, i: number) => (
                                             <div key={i} className={`p-4 rounded-lg border ${getSeverityColor(issue.severity)}`}>
                                                 <div className="flex items-center justify-between mb-1">
                                                     <span className="font-medium text-sm">{issue.type}</span>
@@ -489,30 +636,6 @@ export default function SecurityTestingPage() {
                                     )
                                 })()}
                             </div>
-
-                            {/* Command Output */}
-                            {commandOutput && (
-                                <div className="bg-gray-950 rounded-xl border border-gray-700 p-5">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <h3 className="text-sm font-bold text-gray-300 flex items-center gap-2">
-                                            <Terminal className="w-4 h-4" />
-                                            Command Output
-                                        </h3>
-                                        <button onClick={() => setCommandOutput(null)} className="text-gray-500 hover:text-gray-300 transition-colors">
-                                            <X className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                    <pre className="text-xs text-gray-300 font-mono whitespace-pre-wrap overflow-x-auto max-h-80 overflow-y-auto">{commandOutput}</pre>
-                                </div>
-                            )}
-
-                            {/* Running Status */}
-                            {isRunningCommand && (
-                                <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex items-center gap-3">
-                                    <RefreshCw className="w-4 h-4 text-blue-400 animate-spin" />
-                                    <p className="text-blue-300 text-sm font-medium">Running: {runningCommand}</p>
-                                </div>
-                            )}
 
                             {lastRun && (
                                 <p className="text-center text-xs text-gray-500">Last run: {lastRun}</p>
