@@ -723,6 +723,8 @@ export default function TestDashboard() {
                 {results.tests.find((test: any) => test.name === 'Security Check Script') ? (
                   (() => {
                     const securityTest = results.tests.find((test: any) => test.name === 'Security Check Script')
+                    if (!securityTest) return null
+                    
                     return (
                       <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600">
                         <div className="flex items-center justify-between mb-3">
