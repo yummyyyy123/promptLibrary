@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import AdminAuthCheck from '@/components/AdminAuthCheck'
 import {
@@ -44,6 +45,7 @@ interface IssueDetail {
 }
 
 export default function SecurityTestingPage() {
+    const router = useRouter()
     const [results, setResults] = useState<TestResults | null>(null)
     const [loading, setLoading] = useState(false)
     const [lastRun, setLastRun] = useState<string>('')
@@ -351,11 +353,10 @@ export default function SecurityTestingPage() {
                                             <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-white/5">
                                                 <p className="text-[10px] text-emerald-400 font-mono truncate">{vuln.recommendedAction}</p>
                                                 <button
-                                                    onClick={() => applySecurityFix('update-package', vuln.affectedPackage)}
-                                                    disabled={isApplyingFix}
-                                                    className="flex-shrink-0 px-2 py-1 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 text-[10px] font-bold rounded border border-emerald-500/30 transition-colors disabled:opacity-50"
+                                                    onClick={() => router.push('/admin/debug')}
+                                                    className="flex-shrink-0 px-2 py-1 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 text-[10px] font-bold rounded border border-blue-500/30 transition-colors"
                                                 >
-                                                    {isApplyingFix ? 'Fixing...' : 'Fix Now'}
+                                                    Manage Fix
                                                 </button>
                                             </div>
                                         </div>
@@ -370,56 +371,18 @@ export default function SecurityTestingPage() {
                             </div>
 
                             {/* Threat Intel Actions */}
-                            <div className="grid grid-cols-2 gap-2 mt-4">
+                            <div className="mt-4">
                                 <button
-                                    onClick={() => applySecurityFix('audit-fix')}
-                                    disabled={isApplyingFix}
-                                    className="px-3 py-2 bg-gray-900/60 hover:bg-gray-900 text-gray-300 text-xs rounded border border-gray-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                    onClick={() => router.push('/admin/debug')}
+                                    className="w-full px-3 py-2 bg-gray-900/60 hover:bg-gray-900 text-gray-300 text-xs rounded border border-gray-700 transition-colors flex items-center justify-center gap-2"
                                 >
-                                    <Zap className="w-3 h-3 text-amber-400" />
-                                    Audit Fix
-                                </button>
-                                <button
-                                    onClick={() => fetchVulnerabilityIntelligence()}
-                                    disabled={isFetchingVulnerabilities}
-                                    className="px-3 py-2 bg-gray-900/60 hover:bg-gray-900 text-gray-300 text-xs rounded border border-gray-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                                >
-                                    <RefreshCw className={`w-3 h-3 text-blue-400 ${isFetchingVulnerabilities ? 'animate-spin' : ''}`} />
-                                    Retest Stack
+                                    <Terminal className="w-3 h-3 text-blue-400" />
+                                    Open Security Command Hub (Debug Panel)
                                 </button>
                             </div>
                         </motion.div>
                     </div>
 
-                    {/* Security Operations Console */}
-                    <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-6 mb-8">
-                        <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                            <Activity className="w-5 h-5 text-blue-400" />
-                            Security Operations Console
-                        </h2>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            {[
-                                { name: 'Full Audit', cmd: 'full', icon: Shield, color: 'text-emerald-400' },
-                                { name: 'Quick Check', cmd: 'quick', icon: Zap, color: 'text-yellow-400' },
-                                { name: 'Secret Scan', cmd: 'secrets', icon: Lock, color: 'text-red-400' },
-                                { name: 'Dep. Audit', cmd: 'audit', icon: Search, color: 'text-blue-400' },
-                                { name: 'Type Check', cmd: 'typecheck', icon: CheckSquare, color: 'text-orange-400' },
-                                { name: 'Linter', cmd: 'lint', icon: FileText, color: 'text-cyan-400' },
-                                { name: 'Build Test', cmd: 'build', icon: Activity, color: 'text-pink-400' },
-                                { name: 'QA Sanity', cmd: 'qa', icon: CheckSquare, color: 'text-teal-400' },
-                            ].map((op) => (
-                                <button
-                                    key={op.name}
-                                    onClick={() => runSecurityCommand(op.cmd)}
-                                    disabled={isRunningCommand}
-                                    className="p-3 bg-gray-900/60 hover:bg-gray-900 border border-gray-700 rounded-lg transition-all flex flex-col items-center gap-2 group disabled:opacity-50"
-                                >
-                                    <op.icon className={`w-5 h-5 ${op.color} group-hover:scale-110 transition-transform`} />
-                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{op.name}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
 
                     {/* Test Coverage Explanation */}
                     <div className="bg-gray-800/40 border border-gray-700 rounded-xl p-5 mb-8">
@@ -444,25 +407,24 @@ export default function SecurityTestingPage() {
                         </div>
                     </div>
 
-                    {/* 1-Tap Security Test Controller */}
+                    {/* 1-Tap Security Audit - Redirect to Debug */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="bg-gradient-to-r from-emerald-900/30 to-teal-900/30 border border-emerald-500/30 rounded-xl p-5 sm:p-8 mb-8 text-center"
                     >
                         <Shield className="w-12 h-12 text-emerald-400 mx-auto mb-4" />
-                        <h2 className="text-xl font-bold text-white mb-2">1-Tap Security Audit</h2>
+                        <h2 className="text-xl font-bold text-white mb-2">Security Operations Hub</h2>
                         <p className="text-gray-400 text-sm max-w-2xl mx-auto mb-6">
-                            Run a comprehensive sweep of your active configurations, including Supabase RLS, API CORS policies, and server-side middleware protections.
+                            Operations like 1-tap audits, secret scanning, and dependency fixes have been moved to the central <b>Debug Panel</b> to keep the dashboard focused on real-time status monitoring.
                         </p>
                         <div className="flex flex-col sm:flex-row justify-center gap-4">
                             <button
-                                onClick={() => runTests('all')}
-                                disabled={loading}
-                                className="px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 transition-all transform hover:scale-105 shadow-lg shadow-emerald-900/50 flex items-center justify-center gap-2 disabled:opacity-50 disabled:hover:scale-100 font-bold"
+                                onClick={() => router.push('/admin/debug')}
+                                className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-all transform hover:scale-105 shadow-lg shadow-blue-900/50 flex items-center justify-center gap-2 font-bold"
                             >
-                                {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
-                                {loading ? 'Auditing System...' : 'Run 1-Tap Audit'}
+                                <Terminal className="w-5 h-5" />
+                                Go to Command Hub
                             </button>
                         </div>
                     </motion.div>

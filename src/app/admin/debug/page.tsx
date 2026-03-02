@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Shield, AlertTriangle, CheckCircle, XCircle, RefreshCw, Database, Globe, Key, Activity, Play, ChevronRight, X, Zap, GitBranch, Server, Bug, TestTube, CheckSquare } from 'lucide-react'
+import { Shield, AlertTriangle, CheckCircle, XCircle, RefreshCw, Database, Globe, Key, Activity, Play, ChevronRight, X, Zap, GitBranch, Server, Bug, TestTube, CheckSquare, Search, FileText, Lock, Terminal, Clock } from 'lucide-react'
 import AdminAuthCheck from '@/components/AdminAuthCheck'
 
 interface DebugInfo {
@@ -327,226 +327,87 @@ export default function AdminDebug() {
             </div>
           </div>
 
-          {/* Security Testing Commands */}
+          {/* Security Operations Console (Moved from Security Dashboard) */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <Activity className="w-5 h-5 text-blue-600" />
-              Security Testing Commands
+              Security Operations Console
             </h2>
-            <div className="space-y-4">
-              {/* Quick Actions */}
-              <div className="flex flex-wrap gap-2 mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { name: 'Full Audit', cmd: 'full', icon: Shield, color: 'text-emerald-500' },
+                { name: 'Quick Check', cmd: 'quick', icon: Zap, color: 'text-yellow-500' },
+                { name: 'Secret Scan', cmd: 'secrets', icon: Lock, color: 'text-red-500' },
+                { name: 'Dep. Audit', cmd: 'audit', icon: Search, color: 'text-blue-500' },
+                { name: 'Type Check', cmd: 'typecheck', icon: CheckSquare, color: 'text-orange-500' },
+                { name: 'Linter', cmd: 'lint', icon: FileText, color: 'text-cyan-500' },
+                { name: 'Build Test', cmd: 'build', icon: Activity, color: 'text-pink-500' },
+                { name: 'QA Sanity', cmd: 'qa', icon: CheckSquare, color: 'text-teal-500' },
+              ].map((op) => (
                 <button
-                  onClick={() => runSecurityCommand('full')}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                  key={op.name}
+                  onClick={() => runSecurityCommand(op.cmd)}
+                  disabled={isRunningCommand}
+                  className="p-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 rounded-lg transition-all flex flex-col items-center gap-2 group disabled:opacity-50"
                 >
-                  <Play className="w-4 h-4" />
-                  Run Full Security Suite
+                  <op.icon className={`w-5 h-5 ${op.color} group-hover:scale-110 transition-transform`} />
+                  <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tighter">{op.name}</span>
                 </button>
-                <button
-                  onClick={() => runSecurityCommand('quick')}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                >
-                  <Zap className="w-4 h-4" />
-                  Quick Security Check
-                </button>
-                <button
-                  onClick={() => fetchDebugInfo()}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  Refresh Status
-                </button>
+              ))}
+            </div>
+
+            {/* Audit Scope Explanation */}
+            <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2 uppercase tracking-wider">
+                <Activity className="w-4 h-4 text-blue-600" />
+                Audit Scope & Test Coverage
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {[
+                  { name: 'Rate Limiting', desc: 'Prevents brute force by throttling rapid requests.' },
+                  { name: 'Secret Detection', desc: 'Scans for hardcoded keys and sensitive tokens.' },
+                  { name: 'OTP Validation', desc: 'Verifies 2FA expiration and reuse protection.' },
+                  { name: 'Input Sanitization', desc: 'Blocks XSS and malicious injection attempts.' },
+                  { name: 'Security Headers', desc: 'Checks for CSP, HSTS, and Frame-Options.' },
+                  { name: 'Dependency Audit', desc: 'Scans npm packages for known vulnerabilities.' }
+                ].map((test) => (
+                  <div key={test.name} className="p-3 bg-gray-50/50 dark:bg-gray-900/40 rounded-lg border border-gray-100 dark:border-gray-700/50">
+                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-1">{test.name}</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 leading-relaxed">{test.desc}</p>
+                  </div>
+                ))}
               </div>
+            </div>
 
-              {/* Individual Commands Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                <button
-                  onClick={() => runSecurityCommand('check')}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
-                >
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900 dark:text-white text-sm">Security Check</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Pre-commit validation</p>
-                  </div>
+            {/* Unified Terminal Output */}
+            {(commandOutput || isRunningCommand) && (
+              <div className="mt-6 p-4 bg-gray-900 dark:bg-black rounded-lg border border-gray-700 shadow-inner">
+                <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Play className="w-4 h-4 text-blue-600 group-hover:text-blue-700" />
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => runSecurityCommand('audit')}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
-                >
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900 dark:text-white text-sm">Dependency Audit</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Check vulnerabilities</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Play className="w-4 h-4 text-amber-600 group-hover:text-amber-700" />
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => runSecurityCommand('secrets')}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
-                >
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900 dark:text-white text-sm">Secret Detection</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Scan for secrets</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Play className="w-4 h-4 text-red-600 group-hover:text-red-700" />
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => runSecurityCommand('env')}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
-                >
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900 dark:text-white text-sm">Environment Check</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Validate env vars</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Play className="w-4 h-4 text-purple-600 group-hover:text-purple-700" />
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => runSecurityCommand('test')}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
-                >
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900 dark:text-white text-sm">Security Tests</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Run test suite</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Play className="w-4 h-4 text-indigo-600 group-hover:text-indigo-700" />
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => runSecurityCommand('deps')}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
-                >
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900 dark:text-white text-sm">Dependency Fix</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Auto-fix vulnerabilities</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Play className="w-4 h-4 text-green-600 group-hover:text-green-700" />
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => runSecurityCommand('lint')}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
-                >
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900 dark:text-white text-sm">Code Linting</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">ESLint validation</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Play className="w-4 h-4 text-cyan-600 group-hover:text-cyan-700" />
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => runSecurityCommand('typecheck')}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
-                >
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900 dark:text-white text-sm">Type Check</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">TypeScript validation</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Play className="w-4 h-4 text-orange-600 group-hover:text-orange-700" />
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => runSecurityCommand('build')}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
-                >
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900 dark:text-white text-sm">Build Test</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Production build</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Play className="w-4 h-4 text-pink-600 group-hover:text-pink-700" />
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </div>
-                </button>
-
-                {/* QA Tool Additions */}
-                <button
-                  onClick={() => runSecurityCommand('jest')}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
-                >
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900 dark:text-white text-sm">Unit Tests</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Run QA suite</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <TestTube className="w-4 h-4 text-fuchsia-600 group-hover:text-fuchsia-700" />
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </div>
-                </button>
-
-                <button
-                  onClick={() => runSecurityCommand('qa')}
-                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
-                >
-                  <div className="text-left">
-                    <p className="font-medium text-gray-900 dark:text-white text-sm">QA Sanity Check</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Full end-to-end mock</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckSquare className="w-4 h-4 text-teal-600 group-hover:text-teal-700" />
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </div>
-                </button>
-              </div>
-
-              {/* Command Output */}
-              {commandOutput && (
-                <div className="mt-4 p-4 bg-gray-900 dark:bg-black rounded-lg border border-gray-700">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="font-medium text-gray-300 text-sm">Command Output:</p>
-                    <button
-                      onClick={() => setCommandOutput(null)}
-                      className="text-gray-400 hover:text-gray-200 transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                  <pre className="text-xs text-gray-300 font-mono whitespace-pre-wrap overflow-x-auto max-h-96 overflow-y-auto">
-                    {commandOutput}
-                  </pre>
-                </div>
-              )}
-
-              {/* Running Status */}
-              {isRunningCommand && (
-                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <RefreshCw className="w-4 h-4 text-blue-600 animate-spin" />
-                    <p className="text-blue-800 dark:text-blue-200 text-sm font-medium">
-                      Running security command: {runningCommand}
+                    <Terminal className="w-4 h-4 text-gray-400" />
+                    <p className="font-mono font-medium text-gray-400 text-xs uppercase tracking-widest">
+                      {isRunningCommand ? `Processing: ${runningCommand}` : 'Command Output'}
                     </p>
                   </div>
+                  <button
+                    onClick={() => setCommandOutput(null)}
+                    className="text-gray-500 hover:text-gray-200 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-              )}
-            </div>
+                {isRunningCommand && !commandOutput ? (
+                  <div className="flex items-center gap-3 py-4 text-blue-400">
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span className="text-xs font-mono animate-pulse">Executing secure kernel operation...</span>
+                  </div>
+                ) : (
+                  <pre className="text-xs text-emerald-400/90 font-mono whitespace-pre-wrap overflow-x-auto max-h-96 overflow-y-auto custom-scrollbar">
+                    {commandOutput}
+                  </pre>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Threat Intelligence */}
