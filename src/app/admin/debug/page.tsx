@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Shield, AlertTriangle, CheckCircle, XCircle, RefreshCw, Database, Globe, Key } from 'lucide-react'
+import { Shield, AlertTriangle, CheckCircle, XCircle, RefreshCw, Database, Globe, Key, Activity, Play, ChevronRight, X } from 'lucide-react'
 
 interface DebugInfo {
   timestamp: string
@@ -26,7 +26,38 @@ export default function AdminDebug() {
   const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>('')
+  const [commandOutput, setCommandOutput] = useState<string | null>(null)
+  const [isRunningCommand, setIsRunningCommand] = useState(false)
+  const [runningCommand, setRunningCommand] = useState<string>('')
   const router = useRouter()
+
+  const runSecurityCommand = async (command: string) => {
+    setIsRunningCommand(true)
+    setRunningCommand(command)
+    setCommandOutput(null)
+
+    try {
+      const response = await fetch('/api/admin/security-command', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ command }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      setCommandOutput(data.output || data.error || 'Command completed')
+    } catch (error: any) {
+      setCommandOutput(`Error: ${error.message}`)
+    } finally {
+      setIsRunningCommand(false)
+      setRunningCommand('')
+    }
+  }
 
   useEffect(() => {
     fetchDebugInfo()
@@ -237,6 +268,131 @@ export default function AdminDebug() {
                 <p className="text-sm text-amber-600 dark:text-amber-400">
                   Found {debugInfo.security.totalIssues} security issue(s) that need attention
                 </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Security Testing Commands */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <Activity className="w-5 h-5 text-blue-600" />
+            Security Testing Commands
+          </h2>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <button
+                onClick={() => runSecurityCommand('check')}
+                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
+              >
+                <div className="text-left">
+                  <p className="font-medium text-gray-900 dark:text-white text-sm">Security Check</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Pre-commit validation</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Play className="w-4 h-4 text-blue-600 group-hover:text-blue-700" />
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </div>
+              </button>
+
+              <button
+                onClick={() => runSecurityCommand('audit')}
+                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
+              >
+                <div className="text-left">
+                  <p className="font-medium text-gray-900 dark:text-white text-sm">Dependency Audit</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Check vulnerabilities</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Play className="w-4 h-4 text-amber-600 group-hover:text-amber-700" />
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </div>
+              </button>
+
+              <button
+                onClick={() => runSecurityCommand('secrets')}
+                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
+              >
+                <div className="text-left">
+                  <p className="font-medium text-gray-900 dark:text-white text-sm">Secret Detection</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Scan for secrets</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Play className="w-4 h-4 text-red-600 group-hover:text-red-700" />
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </div>
+              </button>
+
+              <button
+                onClick={() => runSecurityCommand('full')}
+                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
+              >
+                <div className="text-left">
+                  <p className="font-medium text-gray-900 dark:text-white text-sm">Full Security Suite</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Complete security check</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Play className="w-4 h-4 text-green-600 group-hover:text-green-700" />
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </div>
+              </button>
+
+              <button
+                onClick={() => runSecurityCommand('env')}
+                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
+              >
+                <div className="text-left">
+                  <p className="font-medium text-gray-900 dark:text-white text-sm">Environment Check</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Validate env vars</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Play className="w-4 h-4 text-purple-600 group-hover:text-purple-700" />
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </div>
+              </button>
+
+              <button
+                onClick={() => runSecurityCommand('test')}
+                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
+              >
+                <div className="text-left">
+                  <p className="font-medium text-gray-900 dark:text-white text-sm">Security Tests</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Run test suite</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Play className="w-4 h-4 text-indigo-600 group-hover:text-indigo-700" />
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </div>
+              </button>
+            </div>
+
+            {/* Command Output */}
+            {commandOutput && (
+              <div className="mt-4 p-4 bg-gray-900 dark:bg-black rounded-lg border border-gray-700">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-medium text-gray-300 text-sm">Command Output:</p>
+                  <button
+                    onClick={() => setCommandOutput(null)}
+                    className="text-gray-400 hover:text-gray-200 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <pre className="text-xs text-gray-300 font-mono whitespace-pre-wrap overflow-x-auto">
+                  {commandOutput}
+                </pre>
+              </div>
+            )}
+
+            {/* Running Status */}
+            {isRunningCommand && (
+              <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <RefreshCw className="w-4 h-4 text-blue-600 animate-spin" />
+                  <p className="text-blue-800 dark:text-blue-200 text-sm font-medium">
+                    Running security command: {runningCommand}
+                  </p>
+                </div>
               </div>
             )}
           </div>
