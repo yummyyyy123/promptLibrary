@@ -104,47 +104,6 @@ export async function POST(request: NextRequest) {
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
     
     return response
-    if (username !== ADMIN_USERNAME) {
-      console.log('❌ Username mismatch')
-      return NextResponse.json(
-        { error: 'Invalid credentials - username wrong' },
-        { status: 401 }
-      )
-    }
-
-    // Check password
-    const isValidPassword = password === ADMIN_PASSWORD
-    console.log('🔍 Password validation result:', isValidPassword)
-
-    if (!isValidPassword) {
-      console.log('❌ Password mismatch')
-      return NextResponse.json(
-        { error: 'Invalid credentials - password wrong' },
-        { status: 401 }
-      )
-    }
-
-    console.log('✅ Credentials validated successfully')
-
-    // Generate JWT token
-    const token = Buffer.from(`${username}:${Date.now()}`).toString('base64')
-    console.log('🍪 Token generated successfully')
-
-    // Set HTTP-only cookie
-    const response = NextResponse.json({
-      message: 'Login successful',
-      user: { username, role: 'admin' }
-    })
-
-    response.cookies.set('admin-token', token, {
-      httpOnly: true,
-      secure: false, // Set to false for localhost
-      sameSite: 'lax', // More permissive for localhost
-      maxAge: 24 * 60 * 60 // 24 hours
-    })
-
-    console.log('🍪 Response with cookie set')
-    return response
 
   } catch (error: any) {
     console.error('💥 Login error:', error)

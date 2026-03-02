@@ -23,7 +23,6 @@ export const POST = withAdminAuth(async (request: NextRequest) => {
           { status: 400 }
         )
     }
-    
   } catch (error: any) {
     console.error('❌ Security action error:', error)
     return NextResponse.json(
@@ -35,7 +34,7 @@ export const POST = withAdminAuth(async (request: NextRequest) => {
       { status: 500 }
     )
   }
-}
+})
 
 async function updateAllPackages() {
   try {
