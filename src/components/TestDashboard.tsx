@@ -2,10 +2,17 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { CheckCircle, XCircle, AlertTriangle, Activity, Shield, Zap, GitBranch, Clock, RefreshCw, AlertCircle as AlertIcon, Info, Bug, Lock } from 'lucide-react'
+import { CheckCircle, XCircle, AlertTriangle, Activity, Shield, Zap, GitBranch, Clock, RefreshCw, AlertCircle as AlertIcon, Info, Bug, Lock, FileText } from 'lucide-react'
 
 interface TestResults {
   timestamp: string
+  tests: Array<{
+    name: string
+    status: string
+    details: string
+    severity: string
+    components?: any
+  }>
   pipeline: {
     smoke: any
     security: any
