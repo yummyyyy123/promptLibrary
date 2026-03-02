@@ -96,7 +96,8 @@ export async function GET(request: NextRequest) {
           try {
             // Run security check on the test file
             const { spawn } = require('child_process')
-            const securityCheck = spawn('node', [securityScriptPath], {
+            const scriptPath = path.join(process.cwd(), 'scripts', 'security-check.js')
+            const securityCheck = spawn('node', [scriptPath], {
               stdio: 'pipe',
               cwd: process.cwd()
             })
