@@ -1,6 +1,5 @@
-#!/usr/bin/env node
-
 const axios = require('axios');
+require('dotenv').config();
 
 const BASE_URL = process.env.APP_URL || 'http://localhost:3000';
 const ENDPOINTS = [
@@ -23,6 +22,7 @@ const FUZZ_PAYLOADS = [
 
 async function fuzz() {
     console.log(`🚀 Starting API Fuzzer on ${BASE_URL}...`);
+    console.log(`(Note: Ensure your dev server is running at ${BASE_URL})\n`);
 
     for (const endpoint of ENDPOINTS) {
         console.log(`\n🔍 Fuzzing endpoint: ${endpoint}`);
@@ -48,9 +48,4 @@ async function fuzz() {
     }
 }
 
-// Only run if APP_URL is set or explicitly called
-if (process.env.APP_URL) {
-    fuzz();
-} else {
-    console.log("Skipping dynamic fuzzing - APP_URL not set.");
-}
+fuzz();

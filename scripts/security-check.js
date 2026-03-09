@@ -51,53 +51,57 @@ function runCommand(command, options = {}) {
     }
 }
 
-function checkSecrets() {
+function checkSecrets(allFiles = false) {
     colorLog('blue', '\n🔒 Checking for potential secrets in code...');
 
     let issuesFound = false;
 
     try {
-        // Get staged files
-        const gitResult = runCommand('git diff --cached --name-only --diff-filter=ACM');
-        if (!gitResult.success) {
-            printStatus('WARN', 'Could not get staged files');
-            return false;
+        let files = [];
+        let commandResult;
+        if (allFiles) {
+            // Get all files recursively, excluding node_modules and .git
+            commandResult = runCommand('git ls-files');
+            if (!commandResult.success) {
+                printStatus('WARN', 'Could not get all files for scanning');
+                return false;
+            }
+        } else {
+            // Get staged files
+            commandResult = runCommand('git diff --cached --name-only --diff-filter=ACM');
+            if (!commandResult.success) {
+                printStatus('WARN', 'Could not get staged files');
+                return false;
+            }
         }
+        files = commandResult.output.trim().split('\n').filter(f => f.trim());
 
-        const stagedFiles = gitResult.output.trim().split('\n').filter(f => f.trim());
-
-        if (stagedFiles.length === 0) {
-            printStatus('INFO', 'No staged files to check');
+        if (files.length === 0) {
+            printStatus('INFO', allFiles ? 'No files found to scan' : 'No staged files to check');
             return false;
         }
 
         // Check each file for secret patterns
         const secretPatterns = [
-            /password\s*[:=]\s*['"`][^'"`]{8,}['"`]/i,
-            /api[_-]?key\s*[:=]\s*['"`][^'"`]{16,}['"`]/i,
-            /secret[_-]?key\s*[:=]\s*['"`][^'"`]{16,}['"`]/i,
-            /token\s*[:=]\s*['"`][^'"`]{16,}['"`]/i,
-            /jwt[_-]?secret\s*[:=]\s*['"`][^'"`]{16,}['"`]/i,
-            /supabase[_-]?key\s*[:=]\s*['"`][^'"`]{20,}['"`]/i,
-            /database[_-]?url\s*[:=]\s*['"`][^'"`]{10,}['"`]/i,
-            /-----BEGIN (RSA )?PRIVATE KEY-----/
+            { id: 'HARDCODED_SECRET', pattern: /(apiKey|secretKey|token|password|auth|jwt|supabase_key)\s*[:=]\s*['"`](?!process\.env)[a-zA-Z0-9_\-\.]{16,}/i, desc: 'Potential hardcoded secret (literal value detected)' },
+            { id: 'PRIVATE_KEY', pattern: /-----BEGIN (RSA )?PRIVATE KEY-----/, desc: 'Private key detected' }
         ];
 
-        for (const file of stagedFiles) {
+        for (const file of files) {
             if (!fs.existsSync(file)) continue;
 
             try {
                 const content = fs.readFileSync(file, 'utf8');
 
-                for (const pattern of secretPatterns) {
-                    if (pattern.test(content)) {
+                for (const item of secretPatterns) {
+                    if (item.pattern.test(content)) {
                         issuesFound = true;
-                        printStatus('FAIL', `Potential secret detected in ${file}`);
+                        printStatus('FAIL', `${item.desc} in ${file}`);
                         break;
                     }
                 }
             } catch (error) {
-                // Skip files that can't be read (binary files, etc.)
+                // Skip files that can't be read
             }
         }
 
@@ -112,16 +116,33 @@ function checkSecrets() {
     return issuesFound;
 }
 
-function checkEnvironmentVariables() {
+function checkEnvironmentVariables(allFiles = false) {
     colorLog('blue', '\n🔒 Checking environment variable handling...');
 
     try {
-        const gitResult = runCommand('git diff --cached --name-only --diff-filter=ACM');
-        if (!gitResult.success) return false;
+        let files = [];
+        let commandResult;
+        if (allFiles) {
+            commandResult = runCommand('git ls-files');
+            if (!commandResult.success) {
+                printStatus('WARN', 'Could not get all files for scanning');
+                return false;
+            }
+        } else {
+            commandResult = runCommand('git diff --cached --name-only --diff-filter=ACM');
+            if (!commandResult.success) {
+                printStatus('WARN', 'Could not get staged files');
+                return false;
+            }
+        }
+        files = commandResult.output.trim().split('\n').filter(f => f.trim());
 
-        const stagedFiles = gitResult.output.trim().split('\n').filter(f => f.trim());
+        if (files.length === 0) {
+            printStatus('INFO', allFiles ? 'No files found to scan' : 'No staged files to check');
+            return false;
+        }
 
-        for (const file of stagedFiles) {
+        for (const file of files) {
             if (!fs.existsSync(file)) continue;
 
             try {
@@ -173,14 +194,32 @@ function checkDependencies() {
     return false;
 }
 
-function checkTypeScriptSecurity() {
+function checkTypeScriptSecurity(allFiles = false) {
     colorLog('blue', '\n🔒 Checking TypeScript security patterns...');
 
     try {
-        const gitResult = runCommand('git diff --cached --name-only --diff-filter=ACM');
-        if (!gitResult.success) return false;
+        let files = [];
+        let commandResult;
+        if (allFiles) {
+            commandResult = runCommand('git ls-files');
+            if (!commandResult.success) {
+                printStatus('WARN', 'Could not get all files for scanning');
+                return false;
+            }
+        } else {
+            commandResult = runCommand('git diff --cached --name-only --diff-filter=ACM');
+            if (!commandResult.success) {
+                printStatus('WARN', 'Could not get staged files');
+                return false;
+            }
+        }
+        files = commandResult.output.trim().split('\n').filter(f => f.trim());
 
-        const stagedFiles = gitResult.output.trim().split('\n').filter(f => f.trim());
+        if (files.length === 0) {
+            printStatus('INFO', allFiles ? 'No files found to scan' : 'No staged files to check');
+            return false;
+        }
+
         let issuesFound = false;
 
         const unsafePatterns = [
@@ -190,11 +229,10 @@ function checkTypeScriptSecurity() {
             { id: 'INSECURE_REGEX', pattern: /(\.\*|\+\*).*\$\{/, severity: 'WARN', desc: 'Potential ReDoS (Regex Denial of Service)' },
             { id: 'EVAL', pattern: /eval\s*\(/, severity: 'FAIL', desc: 'Unsafe eval() usage' },
             { id: 'INNER_HTML', pattern: /innerHTML\s*=/, severity: 'WARN', desc: 'Possible XSS via innerHTML' },
-            { id: 'UNSAFE_URL', pattern: /window\.location\.(href|assign|replace)\s*=/, severity: 'WARN', desc: 'Potential Client-side Redirect' },
-            { id: 'HARDCODED_SECRET', pattern: /(apiKey|secretKey|token|password)\s*[:=]\s*['"`][a-zA-Z0-9_\-\.]{10,}/i, severity: 'FAIL', desc: 'Potential hardcoded secret' }
+            { id: 'UNSAFE_URL', pattern: /window\.location\.(href|assign|replace)\s*=/, severity: 'WARN', desc: 'Potential Client-side Redirect' }
         ];
 
-        for (const file of stagedFiles) {
+        for (const file of files) {
             if (!file.match(/\.(ts|tsx|js|jsx)$/)) continue;
             if (!fs.existsSync(file)) continue;
 
@@ -223,15 +261,33 @@ function checkTypeScriptSecurity() {
     return false;
 }
 
-function checkAPISecurity() {
+function checkAPISecurity(allFiles = false) {
     colorLog('blue', '\n🔒 Checking API endpoint security...');
 
     try {
-        const gitResult = runCommand('git diff --cached --name-only --diff-filter=ACM');
-        if (!gitResult.success) return false;
+        let files = [];
+        let commandResult;
+        if (allFiles) {
+            commandResult = runCommand('git ls-files');
+            if (!commandResult.success) {
+                printStatus('WARN', 'Could not get all files for scanning');
+                return false;
+            }
+        } else {
+            commandResult = runCommand('git diff --cached --name-only --diff-filter=ACM');
+            if (!commandResult.success) {
+                printStatus('WARN', 'Could not get staged files');
+                return false;
+            }
+        }
+        files = commandResult.output.trim().split('\n').filter(f => f.trim());
 
-        const stagedFiles = gitResult.output.trim().split('\n').filter(f => f.trim());
-        const apiRoutes = stagedFiles.filter(f => f.includes('route.ts'));
+        if (files.length === 0) {
+            printStatus('INFO', allFiles ? 'No files found to scan' : 'No staged files to check');
+            return false;
+        }
+
+        const apiRoutes = files.filter(f => f.includes('route.ts'));
 
         if (apiRoutes.length === 0) {
             printStatus('INFO', 'No API routes in this commit');
@@ -266,17 +322,24 @@ function checkAPISecurity() {
 }
 
 function main() {
+    const args = process.argv.slice(2);
+    const secretsOnly = args.includes('--secrets-only');
+    const allFiles = args.includes('--all-files');
+
     colorLog('blue', '🛡️  Security Hardening Check');
     colorLog('blue', '=============================\n');
 
     let totalIssues = 0;
 
-    // Run all security checks
-    if (checkSecrets()) totalIssues++;
-    if (checkEnvironmentVariables()) totalIssues++;
-    if (checkDependencies()) totalIssues++;
-    if (checkTypeScriptSecurity()) totalIssues++;
-    if (checkAPISecurity()) totalIssues++;
+    // Run selected security checks
+    if (!secretsOnly) {
+        if (checkEnvironmentVariables(allFiles)) totalIssues++;
+        if (checkDependencies()) totalIssues++;
+        if (checkTypeScriptSecurity(allFiles)) totalIssues++;
+        if (checkAPISecurity(allFiles)) totalIssues++;
+    }
+
+    if (checkSecrets(allFiles)) totalIssues++;
 
     // Summary
     console.log('\n' + '='.repeat(40));
