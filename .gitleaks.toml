@@ -46,7 +46,6 @@ keywords = ["password", "passwd", "pwd"]
 
 # Allowlist for false positives
 [allowlist]
-description = "Global allowlist"
 paths = [
   '''node_modules''',
   '''\.git''',
@@ -57,29 +56,16 @@ paths = [
   '''\.env\.example''',
   '''env\.example''',
   '''package-lock\.json''',
-  '''yarn\.lock'''
+  '''yarn\.lock''',
+  '''\.test\.''',
+  '''mock''',
+  '''example'''
+]
+commits = [
+  "abc123"
+]
+regexes = [
+  '''password\s*=\s*['"]change-me['"]''',
+  '''secret\s*=\s*['"]your-secret-key['"]'''
 ]
 
-# Allow specific files that might contain false positives
-[[allowlist.files]]
-description = "Test files"
-path = '''\.test\.'''
-[[allowlist.files]]
-description = "Mock files"
-path = '''mock'''
-[[allowlist.files]]
-description = "Example files"
-path = '''example'''
-
-# Allow specific commits or branches
-[[allowlist.commits]]
-description = "Test commit"
-hash = "abc123"
-
-# Allow specific lines
-[[allowlist.regexes]]
-description = "Example password"
-regex = '''password\s*=\s*['"]change-me['"]'''
-[[allowlist.regexes]]
-description = "Example secret"
-regex = '''secret\s*=\s*['"]your-secret-key['"]'''
