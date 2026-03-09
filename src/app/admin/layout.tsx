@@ -8,7 +8,6 @@ import { logout } from '@/lib/auth-simple'
 const navItems = [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
     { href: '/admin/security', label: 'Security Testing', icon: FlaskConical },
-    { href: '/admin/debug', label: 'Debug Panel', icon: Bug },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -48,8 +47,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                 key={href}
                                 href={href}
                                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${active
-                                        ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-600/30'
-                                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                    ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-600/30'
+                                    : 'text-gray-400 hover:text-white hover:bg-white/5'
                                     }`}
                             >
                                 <Icon className={`w-4 h-4 ${active ? 'text-emerald-400' : 'text-gray-500'}`} />
