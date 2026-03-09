@@ -4,6 +4,8 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch: # Enable manual triggering
+
 
 jobs:
   security-audit:

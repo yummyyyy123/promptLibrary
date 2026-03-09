@@ -6,14 +6,13 @@ import AdminAuthCheck from '@/components/AdminAuthCheck'
 import GitHubSecurityDashboard from '@/components/GitHubSecurityDashboard'
 import {
     Shield, Lock, FileText, CheckSquare,
-    Activity, Play, Search, Terminal, Loader2, AlertCircle, CheckCircle2
+    Activity, Play, Search, Loader2, AlertCircle, CheckCircle2
 } from 'lucide-react'
 
 export default function SecurityTestingPage() {
     const [isScanning, setIsScanning] = useState(false)
-    const [scanResult, setScanResult] = useState<{ success: boolean; output: string; errors?: string; timestamp: string } | null>(null)
+    const [scanResult, setScanResult] = useState<{ success: boolean; message: string; githubUrl?: string; timestamp: string } | null>(null)
     const [error, setError] = useState<string | null>(null)
-    const terminalRef = useRef<HTMLDivElement>(null)
 
     const handleScan = async () => {
         setIsScanning(true)
@@ -21,7 +20,7 @@ export default function SecurityTestingPage() {
         setScanResult(null)
 
         try {
-            const response = await fetch('/api/admin/security/run-scan', {
+            const response = await fetch('/api/admin/security/trigger-audit', {
                 method: 'POST'
             })
             const data = await response.json()
@@ -29,8 +28,7 @@ export default function SecurityTestingPage() {
             if (response.ok) {
                 setScanResult(data)
             } else {
-                setError(data.error || 'Failed to execute scan')
-                setScanResult(data) // Still set result to show log if available
+                setError(data.error || 'Failed to trigger cloud scan')
             }
         } catch (err: any) {
             setError(err.message || 'An unexpected error occurred')
@@ -38,13 +36,6 @@ export default function SecurityTestingPage() {
             setIsScanning(false)
         }
     }
-
-    // Auto-scroll terminal to bottom
-    useEffect(() => {
-        if (terminalRef.current) {
-            terminalRef.current.scrollTop = terminalRef.current.scrollHeight
-        }
-    }, [scanResult])
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200">
@@ -58,15 +49,15 @@ export default function SecurityTestingPage() {
                     className="mb-12"
                 >
                     <div className="flex items-center gap-4 mb-3">
-                        <div className="w-12 h-12 bg-emerald-500/20 rounded-2xl flex items-center justify-center border border-emerald-500/30">
-                            <Shield className="w-6 h-6 text-emerald-400" />
+                        <div className="w-12 h-12 bg-blue-500/20 rounded-2xl flex items-center justify-center border border-blue-500/30">
+                            <Shield className="w-6 h-6 text-blue-400" />
                         </div>
                         <h1 className="text-4xl font-bold text-white tracking-tight">
-                            Security Operations
+                            Cloud Security Center
                         </h1>
                     </div>
                     <p className="text-slate-400 text-lg max-w-2xl">
-                        Monitor repository health, security advisories, and automated test coverage from a central command center.
+                        Enterprise-grade security audits powered by GitHub Actions. Perform deep static analysis and dynamic attack simulations.
                     </p>
                 </motion.div>
 
@@ -75,30 +66,30 @@ export default function SecurityTestingPage() {
                     <div className="lg:col-span-2 space-y-8">
                         <GitHubSecurityDashboard />
 
-                        {/* Interactive Scan Control & Terminal */}
+                        {/* Cloud Audit Control */}
                         <div className="bg-slate-900/60 rounded-3xl border border-slate-800 overflow-hidden backdrop-blur-xl">
-                            <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                            <div className="p-8 border-b border-white/5 flex items-center justify-between bg-gradient-to-r from-slate-900 to-slate-900/40">
                                 <div>
-                                    <h2 className="text-xl font-bold text-white mb-1">Deep Security Audit</h2>
-                                    <p className="text-sm text-slate-500">Run the full SAST/DAST/Fuzzing suite server-side</p>
+                                    <h2 className="text-xl font-bold text-white mb-1 tracking-tight">Deep Infrastructure Audit</h2>
+                                    <p className="text-sm text-slate-500">Triggers SAST/DAST/Fuzzing suite on GitHub Cloud</p>
                                 </div>
                                 <button
                                     onClick={handleScan}
                                     disabled={isScanning}
-                                    className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all ${isScanning
+                                    className={`flex items-center gap-2 px-8 py-4 rounded-2xl font-bold transition-all ${isScanning
                                             ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                                            : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)]'
+                                            : 'bg-blue-600 hover:bg-blue-500 text-white hover:shadow-[0_0_20px_rgba(37,99,235,0.3)]'
                                         }`}
                                 >
                                     {isScanning ? (
                                         <>
                                             <Loader2 className="w-4 h-4 animate-spin" />
-                                            Scanning...
+                                            Initializing...
                                         </>
                                     ) : (
                                         <>
                                             <Play className="w-4 h-4 fill-current" />
-                                            Trigger Suite
+                                            Trigger Cloud Scan
                                         </>
                                     )}
                                 </button>
@@ -107,73 +98,64 @@ export default function SecurityTestingPage() {
                             <AnimatePresence>
                                 {(isScanning || scanResult || error) && (
                                     <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: 'auto', opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        className="bg-black/50 overflow-hidden"
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="p-8 bg-slate-950/40"
                                     >
-                                        <div className="p-6">
-                                            {/* Status Banner */}
-                                            {isScanning && (
-                                                <div className="flex items-center gap-3 text-blue-400 text-sm mb-4 animate-pulse">
-                                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                                    <span>Initializing enterprise-level security protocols...</span>
+                                        {/* Result Card */}
+                                        {(scanResult || error) && (
+                                            <div className={`rounded-2xl border p-6 flex items-start gap-4 ${scanResult?.success
+                                                    ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400'
+                                                    : 'bg-red-500/5 border-red-500/20 text-red-400'
+                                                }`}>
+                                                <div className="mt-1">
+                                                    {scanResult?.success ? <CheckCircle2 className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
                                                 </div>
-                                            )}
+                                                <div className="flex-1">
+                                                    <h3 className="font-bold mb-1">
+                                                        {scanResult?.success ? 'Cloud Audit Initiated' : 'Audit Request Failed'}
+                                                    </h3>
+                                                    <p className="text-sm opacity-80 leading-relaxed mb-4">
+                                                        {scanResult?.message || error || 'Check your internet connection and GitHub credentials.'}
+                                                    </p>
 
-                                            {scanResult && !isScanning && (
-                                                <div className={`flex items-center gap-3 p-4 rounded-xl mb-4 text-sm ${scanResult.success
-                                                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                                        : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                                                    }`}>
-                                                    {scanResult.success ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-                                                    <span>
-                                                        {scanResult.success
-                                                            ? 'Deep scan completed with 0 critical vulnerabilities found.'
-                                                            : 'Deep scan completed with identified security findings.'}
-                                                    </span>
+                                                    {scanResult?.githubUrl && (
+                                                        <a
+                                                            href={scanResult.githubUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center gap-2 bg-slate-900 border border-emerald-500/30 px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-emerald-500 hover:text-slate-950 transition-all group"
+                                                        >
+                                                            <Activity className="w-3.5 h-3.5" />
+                                                            Monitor Real-Time Logs on GitHub
+                                                            <Activity className="w-3 h-3 animate-pulse text-emerald-500 group-hover:text-slate-950" />
+                                                        </a>
+                                                    )}
                                                 </div>
-                                            )}
-
-                                            {/* Terminal View */}
-                                            <div
-                                                ref={terminalRef}
-                                                className="bg-slate-950 rounded-xl border border-slate-800 font-mono text-xs p-5 max-h-[400px] overflow-y-auto custom-scrollbar"
-                                            >
-                                                <div className="flex items-center gap-2 mb-4 text-slate-600 border-b border-slate-900 pb-2">
-                                                    <Terminal className="w-3 h-3" />
-                                                    <span>Security Terminal</span>
-                                                </div>
-
-                                                {isScanning && !scanResult && (
-                                                    <div className="text-slate-500 italic">$ npm run security:full --verbose</div>
-                                                )}
-
-                                                <pre className="text-slate-300 whitespace-pre-wrap leading-relaxed">
-                                                    {scanResult?.output || scanResult?.errors || ''}
-                                                    {error && !scanResult && <span className="text-red-400">{error}</span>}
-                                                </pre>
-
-                                                {!isScanning && scanResult && (
-                                                    <div className="mt-4 text-slate-500 border-t border-slate-900 pt-2 flex justify-between items-center">
-                                                        <span>Process finished at {new Date(scanResult.timestamp).toLocaleTimeString()}</span>
-                                                        <span className={scanResult.success ? 'text-emerald-500' : 'text-amber-500'}>
-                                                            Exit Code: {scanResult.success ? '0' : '1'}
-                                                        </span>
-                                                    </div>
-                                                )}
                                             </div>
-                                        </div>
+                                        )}
+
+                                        {isScanning && (
+                                            <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                                                <div className="relative">
+                                                    <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+                                                    <Shield className="w-6 h-6 text-blue-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                                                </div>
+                                                <p className="text-blue-400 text-sm font-medium animate-pulse">Contacting GitHub Cloud...</p>
+                                            </div>
+                                        )}
                                     </motion.div>
                                 )}
                             </AnimatePresence>
 
                             {!isScanning && !scanResult && !error && (
-                                <div className="p-12 text-center text-slate-600">
-                                    <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-800">
-                                        <Terminal className="w-8 h-8 opacity-20" />
+                                <div className="p-16 text-center text-slate-600">
+                                    <div className="w-20 h-20 bg-slate-900 border border-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                                        <Activity className="w-8 h-8 opacity-20" />
                                     </div>
-                                    <p className="text-sm">Scan results will be streamed here in real-time.</p>
+                                    <p className="text-sm max-w-sm mx-auto leading-relaxed">
+                                        Offload complex security audits (SAST, DAST, Fuzzing) to GitHub infrastructure to ensure 100% production uptime.
+                                    </p>
                                 </div>
                             )}
                         </div>
