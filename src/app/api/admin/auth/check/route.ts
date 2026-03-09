@@ -1,40 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { authenticateAdmin } from '@/lib/admin-auth'
 import jwt from 'jsonwebtoken'
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('admin-token')?.value || ''
+    const auth = authenticateAdmin(request)
+
+    if (!auth.success) {
+      return NextResponse.json({
+        authenticated: false,
+        error: auth.error || 'Unauthorized'
+      }, { status: 401 })
+    }
+
+    // Get token for decoding user info
+    const token = request.cookies.get('admin-token')?.value ||
+      request.headers.get('authorization')?.split(' ')[1] || ''
+
     const JWT_SECRET = process.env.JWT_SECRET ?? ''
-    if (!JWT_SECRET) {
-      return NextResponse.json({ authenticated: false, error: 'Server misconfiguration' }, { status: 500 })
-    }
+    const decoded = jwt.verify(token, JWT_SECRET) as any
 
-    if (!token) {
-      return NextResponse.json({
-        authenticated: false,
-        error: 'No token provided'
-      }, { status: 401 })
-    }
-
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET) as any
-      return NextResponse.json({
-        authenticated: true,
-        user: {
-          username: decoded.username,
-          role: decoded.role
-        }
-      })
-    } catch (error: any) {
-      return NextResponse.json({
-        authenticated: false,
-        error: 'Invalid token'
-      }, { status: 401 })
-    }
+    return NextResponse.json({
+      authenticated: true,
+      user: {
+        username: decoded.username,
+        role: decoded.role
+      }
+    })
   } catch (error: any) {
     return NextResponse.json({
       authenticated: false,
-      error: 'Server error'
+      error: 'Invalid session'
     }, { status: 401 })
   }
 }
+

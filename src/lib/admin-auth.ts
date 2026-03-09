@@ -102,28 +102,41 @@ export function generateAdminToken(username: string, password: string): AdminAut
 // Middleware for admin API routes
 export function withAdminAuth(handler: (req: NextRequest) => Promise<NextResponse>) {
   return async (request: NextRequest): Promise<NextResponse> => {
-    const auth = authenticateAdmin(request)
+    try {
+      const auth = authenticateAdmin(request)
 
-    if (!auth.success) {
+      if (!auth.success) {
+        return NextResponse.json(
+          {
+            error: 'Unauthorized',
+            message: auth.error || 'Authentication required',
+            timestamp: new Date().toISOString()
+          },
+          { status: 401 }
+        )
+      }
+
+      // Add security headers
+      const response = await handler(request)
+
+      // Add security headers to response
+      response.headers.set('X-Content-Type-Options', 'nosniff')
+      response.headers.set('X-Frame-Options', 'DENY')
+      response.headers.set('X-XSS-Protection', '1; mode=block')
+      response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+
+      return response
+    } catch (error: any) {
+      console.error('💥 Admin Auth Middleware Error:', error)
       return NextResponse.json(
         {
           error: 'Unauthorized',
-          message: auth.error,
+          message: 'An unexpected authentication error occurred',
           timestamp: new Date().toISOString()
         },
         { status: 401 }
       )
     }
-
-    // Add security headers
-    const response = await handler(request)
-
-    // Add security headers to response
-    response.headers.set('X-Content-Type-Options', 'nosniff')
-    response.headers.set('X-Frame-Options', 'DENY')
-    response.headers.set('X-XSS-Protection', '1; mode=block')
-    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-
-    return response
   }
 }
+

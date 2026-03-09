@@ -1,34 +1,9 @@
 // ADMIN SUBMISSIONS - Use Supabase database
 import { NextRequest, NextResponse } from 'next/server'
-import jwt from 'jsonwebtoken'
+import { withAdminAuth } from '@/lib/admin-auth'
 
-const JWT_SECRET = process.env.JWT_SECRET ?? ''
-
-// JWT authentication middleware
-function authenticate(request: NextRequest): boolean {
+export const DELETE = withAdminAuth(async (request: NextRequest) => {
   try {
-    const token = request.cookies.get('admin-token')?.value
-
-    if (!token) {
-      return false
-    }
-
-    const decoded = jwt.verify(token, JWT_SECRET) as any
-    return decoded.role === 'admin'
-  } catch (error) {
-    return false
-  }
-}
-
-export async function DELETE(request: NextRequest) {
-  try {
-    if (!authenticate(request)) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
     const { searchParams } = new URL(request.url)
     const submissionId = searchParams.get('id')
 
@@ -78,19 +53,22 @@ export async function DELETE(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
-export async function POST(request: NextRequest) {
+export const POST = withAdminAuth(async (request: NextRequest) => {
   try {
-    if (!authenticate(request)) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    let body
+    try {
+      body = await request.json()
+    } catch (e) {
+      return NextResponse.json({ error: 'Invalid or missing JSON body' }, { status: 400 })
     }
 
-    const body = await request.json()
     const { action, submissionId, reason } = body
+
+    if (!action || !submissionId) {
+      return NextResponse.json({ error: 'Action and submission ID required' }, { status: 400 })
+    }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.SUPABASE_SERVICE_KEY
@@ -196,17 +174,10 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
-export async function GET(request: NextRequest) {
+export const GET = withAdminAuth(async (request: NextRequest) => {
   try {
-    if (!authenticate(request)) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
 
@@ -277,4 +248,5 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
+

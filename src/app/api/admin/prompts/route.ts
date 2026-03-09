@@ -1,35 +1,15 @@
 // ADMIN PROMPTS - Manage approved prompts (delete functionality)
 import { NextRequest, NextResponse } from 'next/server'
-import jwt from 'jsonwebtoken'
+import { withAdminAuth } from '@/lib/admin-auth'
 
-const JWT_SECRET = process.env.JWT_SECRET ?? ''
-
-// JWT authentication middleware
-function authenticate(request: NextRequest): boolean {
+export const POST = withAdminAuth(async (request: NextRequest) => {
   try {
-    const token = request.cookies.get('admin-token')?.value
-
-    if (!token) {
-      return false
+    let body
+    try {
+      body = await request.json()
+    } catch (e) {
+      return NextResponse.json({ error: 'Invalid or missing JSON body' }, { status: 400 })
     }
-
-    const decoded = jwt.verify(token, JWT_SECRET) as any
-    return decoded.role === 'admin'
-  } catch (error) {
-    return false
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    if (!authenticate(request)) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    const body = await request.json()
 
     // Sanitize input data
     const { sanitizeObject } = await import('@/utils/sanitation')
@@ -91,18 +71,17 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = withAdminAuth(async (request: NextRequest) => {
   try {
-    if (!authenticate(request)) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    let body
+    try {
+      body = await request.json()
+    } catch (e) {
+      return NextResponse.json({ error: 'Invalid or missing JSON body' }, { status: 400 })
     }
 
-    const body = await request.json()
     const { promptId } = body
 
     if (!promptId) {
@@ -157,17 +136,10 @@ export async function DELETE(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
-export async function GET(request: NextRequest) {
+export const GET = withAdminAuth(async (request: NextRequest) => {
   try {
-    if (!authenticate(request)) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.SUPABASE_SERVICE_KEY
 
@@ -210,4 +182,5 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
+
