@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`🌐 Request headers: origin=${origin}, host=${host}`)
 
-    const { username, password, email, action, otp, tempToken } = await request.json()
+    const { username, email, action, otp, tempToken } = await request.json()
     const JWT_SECRET = process.env.JWT_SECRET ?? ''
     const ADMIN_USERNAME = process.env.ADMIN_USERNAME ?? ''
     const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? ''
@@ -24,78 +24,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`📝 Request data: action=${action}, username=${username}, email=${email}`)
 
-    if (action === 'password') {
-      // Step 1: Verify username and password
-      if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
-        return NextResponse.json({
-          error: 'Invalid credentials'
-        }, {
-          status: 401,
-          headers: {
-            'Access-Control-Allow-Origin': origin || '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-            'Access-Control-Allow-Credentials': 'true'
-          }
-        })
-      }
-
-      // ALWAYS require 2FA for admin - no check needed
-      // Generate and send OTP
-      const otpCode = EmailOTP.generateOTP()
-
-      // Send OTP via SMS (using Twilio)
-      const smsSent = await fetch('/api/admin/auth/twilio-sms', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Origin': origin || '*',
-          'Referer': `https://${host}`
-        },
-        body: JSON.stringify({
-          email,
-          otp: otpCode
-        })
-      })
-
-      if (!smsSent.ok) {
-        return NextResponse.json({
-          error: 'Failed to send OTP. Please try again.'
-        }, { status: 500 })
-      }
-
-      // Store OTP in database
-      const stored = await EmailOTP.storeOTP(email, otpCode)
-
-      if (!stored) {
-        // Fallback: Create temporary session without database storage
-        console.log('⚠️ Database not ready, using fallback OTP storage')
-        // Continue with session creation even if database fails
-      }
-
-      // Register email if not already registered
-      await EmailOTP.registerEmail(email, username)
-
-      // Create temporary session
-      const tempToken = OTPSession.createTempSession(email)
-
-      return NextResponse.json({
-        message: 'Password verified. OTP sent to your email.',
-        requiresOTP: true,
-        tempToken,
-        emailLastFour: email.slice(-4),
-        expiresIn: 300 // 5 minutes
-      }, {
-        status: 200,
-        headers: {
-          'Access-Control-Allow-Origin': origin || '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-          'Access-Control-Allow-Credentials': 'true'
-        }
-      })
-
-    } else if (action === 'verify-otp') {
+    if (action === 'verify-otp') {
       // Step 2: Verify OTP
       if (!otp || !tempToken) {
         return NextResponse.json({
@@ -103,11 +32,23 @@ export async function POST(request: NextRequest) {
         }, { status: 400 })
       }
 
+      // Retrieve email from temporary session if not provided
+      let effectiveEmail = email
+      if (!effectiveEmail) {
+        effectiveEmail = OTPSession.verifyTempSession(tempToken) || process.env.ADMIN_EMAIL
+      }
+
+      if (!effectiveEmail) {
+        return NextResponse.json({
+          error: 'Session invalid or expired'
+        }, { status: 400 })
+      }
+
       // Verify OTP — strictly validate against stored OTP only
       let isValid = false
 
       try {
-        isValid = await EmailOTP.verifyOTP(email, otp)
+        isValid = await EmailOTP.verifyOTP(effectiveEmail, otp)
       } catch (error) {
         // Database unavailable — cannot verify OTP safely, reject
         console.error('⚠️ Database error during OTP verification:', error)
@@ -119,7 +60,7 @@ export async function POST(request: NextRequest) {
       if (!isValid) {
         // Increment failed attempts
         try {
-          await EmailOTP.incrementAttempts(email)
+          await EmailOTP.incrementAttempts(effectiveEmail)
         } catch (error) {
           console.log('⚠️ Could not increment attempts (database not ready)')
         }
@@ -140,10 +81,10 @@ export async function POST(request: NextRequest) {
       // Create JWT token with 2FA verified
       const token = jwt.sign(
         {
-          username,
+          username: username || ADMIN_USERNAME,
           role: 'admin',
           twoFactorVerified: true,
-          email: email.slice(-4) // Only store last 4 digits
+          email: effectiveEmail.slice(-4) // Only store last 4 digits
         },
         JWT_SECRET,
         { expiresIn: '1h' }
