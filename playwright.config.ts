@@ -28,7 +28,7 @@ export default defineConfig({
     projects: [
         {
             name: 'security',
-            testMatch: /.*security\.spec\.ts/,
+            testMatch: /.*security.*\.spec\.ts/,
             use: { ...devices['Desktop Chrome'] },
         },
     ],

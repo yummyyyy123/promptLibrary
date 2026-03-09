@@ -40,10 +40,10 @@ function printStatus(status, message) {
 
 function runCommand(command, options = {}) {
     try {
-        const result = execSync(command, { 
-            encoding: 'utf8', 
+        const result = execSync(command, {
+            encoding: 'utf8',
             stdio: 'pipe',
-            ...options 
+            ...options
         });
         return { success: true, output: result };
     } catch (error) {
@@ -53,9 +53,9 @@ function runCommand(command, options = {}) {
 
 function checkSecrets() {
     colorLog('blue', '\n🔒 Checking for potential secrets in code...');
-    
+
     let issuesFound = false;
-    
+
     try {
         // Get staged files
         const gitResult = runCommand('git diff --cached --name-only --diff-filter=ACM');
@@ -63,14 +63,14 @@ function checkSecrets() {
             printStatus('WARN', 'Could not get staged files');
             return false;
         }
-        
+
         const stagedFiles = gitResult.output.trim().split('\n').filter(f => f.trim());
-        
+
         if (stagedFiles.length === 0) {
             printStatus('INFO', 'No staged files to check');
             return false;
         }
-        
+
         // Check each file for secret patterns
         const secretPatterns = [
             /password\s*[:=]\s*['"`][^'"`]{8,}['"`]/i,
@@ -82,13 +82,13 @@ function checkSecrets() {
             /database[_-]?url\s*[:=]\s*['"`][^'"`]{10,}['"`]/i,
             /-----BEGIN (RSA )?PRIVATE KEY-----/
         ];
-        
+
         for (const file of stagedFiles) {
             if (!fs.existsSync(file)) continue;
-            
+
             try {
                 const content = fs.readFileSync(file, 'utf8');
-                
+
                 for (const pattern of secretPatterns) {
                     if (pattern.test(content)) {
                         issuesFound = true;
@@ -100,33 +100,33 @@ function checkSecrets() {
                 // Skip files that can't be read (binary files, etc.)
             }
         }
-        
+
         if (!issuesFound) {
             printStatus('PASS', 'No obvious secrets detected in staged changes');
         }
-        
+
     } catch (error) {
         printStatus('WARN', 'Error checking for secrets');
     }
-    
+
     return issuesFound;
 }
 
 function checkEnvironmentVariables() {
     colorLog('blue', '\n🔒 Checking environment variable handling...');
-    
+
     try {
         const gitResult = runCommand('git diff --cached --name-only --diff-filter=ACM');
         if (!gitResult.success) return false;
-        
+
         const stagedFiles = gitResult.output.trim().split('\n').filter(f => f.trim());
-        
+
         for (const file of stagedFiles) {
             if (!fs.existsSync(file)) continue;
-            
+
             try {
                 const content = fs.readFileSync(file, 'utf8');
-                
+
                 // Check for hardcoded environment values
                 if (/process\.env\.[A-Z_]+\s*[:=]\s*['"`][^'"`]+['"`]/.test(content)) {
                     printStatus('FAIL', 'Hardcoded environment values detected');
@@ -136,30 +136,30 @@ function checkEnvironmentVariables() {
                 // Skip files that can't be read
             }
         }
-        
+
         printStatus('PASS', 'No hardcoded environment values found');
-        
+
     } catch (error) {
         printStatus('WARN', 'Error checking environment variables');
     }
-    
+
     return false;
 }
 
 function checkDependencies() {
     colorLog('blue', '\n🔒 Running npm audit for vulnerable dependencies...');
-    
+
     const auditResult = runCommand('npm audit --audit-level=moderate --json');
-    
+
     if (!auditResult.success) {
         printStatus('WARN', 'npm audit failed');
         return false;
     }
-    
+
     try {
         const auditData = JSON.parse(auditResult.output);
         const vulnCount = Object.keys(auditData.vulnerabilities || {}).length;
-        
+
         if (vulnCount > 0) {
             printStatus('WARN', `Found ${vulnCount} vulnerable dependencies`);
             return false;
@@ -169,82 +169,81 @@ function checkDependencies() {
     } catch (error) {
         printStatus('WARN', 'Could not parse npm audit output');
     }
-    
+
     return false;
 }
 
 function checkTypeScriptSecurity() {
     colorLog('blue', '\n🔒 Checking TypeScript security patterns...');
-    
+
     try {
         const gitResult = runCommand('git diff --cached --name-only --diff-filter=ACM');
         if (!gitResult.success) return false;
-        
+
         const stagedFiles = gitResult.output.trim().split('\n').filter(f => f.trim());
         let issuesFound = false;
-        
+
         const unsafePatterns = [
-            /any\s*[\[\];,]/,
-            /eval\s*\(/,
-            /Function\s*\(/,
-            /setTimeout\s*\([^,]+,\s*['"`]/,
-            /setInterval\s*\([^,]+,\s*['"`]/,
-            /innerHTML\s*=/,
-            /outerHTML\s*=/,
-            /document\.write/
+            { id: 'PROTOTYPE_POLLUTION', pattern: /(__proto__|constructor\.prototype)/, severity: 'FAIL', desc: 'Possible Prototype Pollution' },
+            { id: 'PATH_TRAVERSAL', pattern: /(\.\.\/|\.\.\\)/, severity: 'WARN', desc: 'Potential Path Traversal' },
+            { id: 'NOSQL_INJECTION', pattern: /(\$where|\$regex|\$gt|\$lt|\.eq\(|\.neq\()/, severity: 'WARN', desc: 'Possible NoSQL/Supabase injection pattern' },
+            { id: 'INSECURE_REGEX', pattern: /(\.\*|\+\*).*\$\{/, severity: 'WARN', desc: 'Potential ReDoS (Regex Denial of Service)' },
+            { id: 'EVAL', pattern: /eval\s*\(/, severity: 'FAIL', desc: 'Unsafe eval() usage' },
+            { id: 'INNER_HTML', pattern: /innerHTML\s*=/, severity: 'WARN', desc: 'Possible XSS via innerHTML' },
+            { id: 'UNSAFE_URL', pattern: /window\.location\.(href|assign|replace)\s*=/, severity: 'WARN', desc: 'Potential Client-side Redirect' },
+            { id: 'HARDCODED_SECRET', pattern: /(apiKey|secretKey|token|password)\s*[:=]\s*['"`][a-zA-Z0-9_\-\.]{10,}/i, severity: 'FAIL', desc: 'Potential hardcoded secret' }
         ];
-        
+
         for (const file of stagedFiles) {
             if (!file.match(/\.(ts|tsx|js|jsx)$/)) continue;
             if (!fs.existsSync(file)) continue;
-            
+
             try {
                 const content = fs.readFileSync(file, 'utf8');
-                
-                for (const pattern of unsafePatterns) {
-                    if (pattern.test(content)) {
-                        printStatus('WARN', `Potentially unsafe TypeScript pattern in ${file}`);
+
+                for (const item of unsafePatterns) {
+                    if (item.pattern.test(content)) {
+                        printStatus(item.severity, `${item.desc} in ${file}`);
                         issuesFound = true;
-                        break;
                     }
                 }
             } catch (error) {
                 // Skip files that can't be read
             }
         }
-        
+
         if (!issuesFound) {
-            printStatus('PASS', 'No unsafe TypeScript patterns detected');
+            printStatus('PASS', 'No advanced unsafe patterns detected');
         }
-        
+
     } catch (error) {
         printStatus('WARN', 'Error checking TypeScript patterns');
     }
-    
+
     return false;
 }
 
 function checkAPISecurity() {
     colorLog('blue', '\n🔒 Checking API endpoint security...');
-    
+
     try {
         const gitResult = runCommand('git diff --cached --name-only --diff-filter=ACM');
         if (!gitResult.success) return false;
-        
+
         const stagedFiles = gitResult.output.trim().split('\n').filter(f => f.trim());
         const apiRoutes = stagedFiles.filter(f => f.includes('route.ts'));
-        
+
         if (apiRoutes.length === 0) {
             printStatus('INFO', 'No API routes in this commit');
             return false;
         }
-        
+
         for (const route of apiRoutes) {
             if (!fs.existsSync(route)) continue;
-            
+
             try {
                 const content = fs.readFileSync(route, 'utf8');
-                
+
                 // Check if route has authentication
                 if (!/(auth|token|jwt|verify)/i.test(content)) {
                     // Skip if it's a public route
@@ -256,34 +255,34 @@ function checkAPISecurity() {
                 // Skip files that can't be read
             }
         }
-        
+
         printStatus('PASS', 'API routes checked for authentication');
-        
+
     } catch (error) {
         printStatus('WARN', 'Error checking API security');
     }
-    
+
     return false;
 }
 
 function main() {
     colorLog('blue', '🛡️  Security Hardening Check');
     colorLog('blue', '=============================\n');
-    
+
     let totalIssues = 0;
-    
+
     // Run all security checks
     if (checkSecrets()) totalIssues++;
     if (checkEnvironmentVariables()) totalIssues++;
     if (checkDependencies()) totalIssues++;
     if (checkTypeScriptSecurity()) totalIssues++;
     if (checkAPISecurity()) totalIssues++;
-    
+
     // Summary
     console.log('\n' + '='.repeat(40));
     console.log('🔒 Security Hardening Summary');
     console.log('============================');
-    
+
     if (totalIssues === 0) {
         colorLog('green', '🎉 All security checks passed!');
         console.log('');
