@@ -112,8 +112,9 @@ async function handleSmokeTests(request: NextRequest) {
       let passedCount = 0
       for (const endpoint of endpoints) {
         try {
-          const url = new URL(request.url)
-          const testUrl = `${url.protocol}//${url.host}${endpoint}`
+          // Use process.env.APP_URL for internal health checks to prevent SSRF vulnerabilities
+          const baseUrl = process.env.APP_URL || 'http://localhost:3000'
+          const testUrl = `${baseUrl}${endpoint}`
           const response = await fetch(testUrl, { method: 'OPTIONS' })
           if (response.status < 500) passedCount++
         } catch (error) {

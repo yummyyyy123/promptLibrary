@@ -23,8 +23,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const url = new URL(request.url)
-    const baseUrl = `${url.protocol}//${url.host}`
+    // Use process.env.APP_URL for internal health checks to prevent SSRF vulnerabilities
+    // Dynamic request.url or Host headers can be manipulated by attackers.
+    const baseUrl = process.env.APP_URL || 'http://localhost:3000'
+    const url = new URL(request.url) // Keep for Origin/Referer headers if needed, but not for baseUrl construction
 
     // Run Smoke Tests
     try {

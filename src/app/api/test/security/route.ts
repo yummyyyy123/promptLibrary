@@ -304,8 +304,10 @@ async function handleSecurityTests(request: NextRequest) {
     // Test 4: Security Headers Check
     try {
       console.log('🔍 Testing security headers...')
-      const url = new URL(request.url)
-      const testUrl = `${url.protocol}//${url.host}/api/admin/auth/email-otp`
+      // Use process.env.APP_URL for internal health checks to prevent SSRF vulnerabilities
+      const baseUrl = process.env.APP_URL || 'http://localhost:3000'
+      const testUrl = `${baseUrl}/api/admin/auth/email-otp`
+      const url = new URL(request.url) // Keep for Origin header reference
 
       const response = await fetch(testUrl, {
         method: 'OPTIONS',
