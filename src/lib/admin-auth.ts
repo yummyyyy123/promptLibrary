@@ -1,15 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 
-// Admin credentials from environment
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin@promptlibrary.com'
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123'
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+// Admin credentials — required environment variables (no defaults allowed)
+function getRequiredEnv(name: string): string {
+  const value = process.env[name]
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`)
+  }
+  return value
+}
+
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME ?? ''
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? ''
+const JWT_SECRET = process.env.JWT_SECRET ?? ''
 
 interface AdminAuthResult {
   success: boolean
   token?: string
   error?: string
+}
+
+export function validateAdminCredentials(username: string, password: string): boolean {
+  if (!ADMIN_USERNAME || !ADMIN_PASSWORD) {
+    throw new Error('Server misconfiguration: admin credentials not set')
+  }
+  return username === ADMIN_USERNAME && password === ADMIN_PASSWORD
 }
 
 export function authenticateAdmin(request: NextRequest): AdminAuthResult {
@@ -30,11 +45,15 @@ export function authenticateAdmin(request: NextRequest): AdminAuthResult {
     }
 
     try {
+      if (!JWT_SECRET) {
+        return { success: false, error: 'Server misconfiguration: JWT_SECRET not set' }
+      }
+
       // Verify JWT token
       const decoded = jwt.verify(token, JWT_SECRET) as any
 
       // Check if token is for admin
-      if (decoded.username !== ADMIN_USERNAME) {
+      if (decoded.role !== 'admin') {
         return { success: false, error: 'Invalid admin credentials' }
       }
 
@@ -54,8 +73,12 @@ export function authenticateAdmin(request: NextRequest): AdminAuthResult {
 
 export function generateAdminToken(username: string, password: string): AdminAuthResult {
   try {
+    if (!JWT_SECRET) {
+      return { success: false, error: 'Server misconfiguration: JWT_SECRET not set' }
+    }
+
     // Validate credentials
-    if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+    if (!validateAdminCredentials(username, password)) {
       return { success: false, error: 'Invalid credentials' }
     }
 

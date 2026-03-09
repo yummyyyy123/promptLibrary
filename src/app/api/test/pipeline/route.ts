@@ -33,14 +33,14 @@ export async function GET(request: NextRequest) {
         headers: { 'Origin': url.origin }
       })
       const smokeData = await smokeResponse.json()
-      
+
       results.pipeline.smoke = {
         status: smokeData.status,
         passed: smokeData.results?.summary?.passed || 0,
         failed: smokeData.results?.summary?.failed || 0,
         total: smokeData.results?.summary?.total || 0
       }
-      
+
       results.summary.totalTests += results.pipeline.smoke.total
       results.summary.passedTests += results.pipeline.smoke.passed
       results.summary.failedTests += results.pipeline.smoke.failed
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         headers: { 'Origin': url.origin }
       })
       const securityData = await securityResponse.json()
-      
+
       results.pipeline.security = {
         status: securityData.status,
         securityScore: securityData.securityScore || 0,
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
         failed: securityData.results?.summary?.failed || 0,
         total: securityData.results?.summary?.total || 0
       }
-      
+
       results.summary.totalTests += results.pipeline.security.total
       results.summary.passedTests += results.pipeline.security.passed
       results.summary.failedTests += results.pipeline.security.failed
@@ -92,17 +92,17 @@ export async function GET(request: NextRequest) {
     // Performance Tests
     try {
       const perfStart = Date.now()
-      
+
       // Test API response times
       const endpoints = [
         '/api/admin/auth/email-otp',
         '/api/admin/auth/2fa-login',
         '/api/admin/auth'
       ]
-      
+
       let totalResponseTime = 0
       let passedPerfTests = 0
-      
+
       for (const endpoint of endpoints) {
         const endpointStart = Date.now()
         try {
@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
           })
           const responseTime = Date.now() - endpointStart
           totalResponseTime += responseTime
-          
+
           // Consider it passed if response time < 1000ms
           if (responseTime < 1000) passedPerfTests++
         } catch (error) {
@@ -121,10 +121,10 @@ export async function GET(request: NextRequest) {
           passedPerfTests++
         }
       }
-      
+
       const avgResponseTime = totalResponseTime / endpoints.length
       const perfScore = Math.round((passedPerfTests / endpoints.length) * 100)
-      
+
       results.pipeline.performance = {
         status: perfScore >= 80 ? 'PASS' : 'FAIL',
         avgResponseTime: avgResponseTime,
@@ -133,12 +133,12 @@ export async function GET(request: NextRequest) {
         failed: endpoints.length - passedPerfTests,
         total: endpoints.length
       }
-      
+
       results.summary.totalTests += results.pipeline.performance.total
       results.summary.passedTests += results.pipeline.performance.passed
       results.summary.failedTests += results.pipeline.performance.failed
       results.summary.performanceScore = perfScore
-      
+
     } catch (error: any) {
       results.pipeline.performance = {
         status: 'ERROR',
@@ -155,9 +155,10 @@ export async function GET(request: NextRequest) {
     // Integration Tests
     try {
       const integrationResults = []
-      
+
       // Test 1: Full OTP Flow
       try {
+        // Integration test: verify that missing credentials are rejected (expect 400/401)
         const otpResponse = await fetch(`${baseUrl}/api/admin/auth/email-otp`, {
           method: 'POST',
           headers: {
@@ -165,13 +166,15 @@ export async function GET(request: NextRequest) {
             'Origin': url.origin
           },
           body: JSON.stringify({
-            email: 'spicy0pepper@gmail.com'
+            username: 'test-pipeline-check',
+            password: 'invalid'
           })
         })
-        
+
         const otpData = await otpResponse.json()
-        const flowWorks = otpData.success && otpData.tempToken
-        
+        // Expect 401 (invalid credentials) — this proves auth gate is working
+        const flowWorks = otpResponse.status === 401 && !!otpData.error
+
         integrationResults.push({
           name: 'Full OTP Flow',
           status: flowWorks ? 'PASS' : 'FAIL',
@@ -184,16 +187,16 @@ export async function GET(request: NextRequest) {
           details: `Error: ${error.message}`
         })
       }
-      
+
       // Test 2: Auth Check
       try {
         const authResponse = await fetch(`${baseUrl}/api/admin/auth/check`, {
           method: 'GET',
           headers: { 'Origin': url.origin }
         })
-        
+
         const authWorks = authResponse.status === 401 // Should be unauthorized without token
-        
+
         integrationResults.push({
           name: 'Auth Check',
           status: authWorks ? 'PASS' : 'FAIL',
@@ -206,10 +209,10 @@ export async function GET(request: NextRequest) {
           details: `Error: ${error.message}`
         })
       }
-      
+
       const passedIntegration = integrationResults.filter(r => r.status === 'PASS').length
       const totalIntegration = integrationResults.length
-      
+
       results.pipeline.integration = {
         status: passedIntegration === totalIntegration ? 'PASS' : 'FAIL',
         passed: passedIntegration,
@@ -217,11 +220,11 @@ export async function GET(request: NextRequest) {
         total: totalIntegration,
         tests: integrationResults
       }
-      
+
       results.summary.totalTests += results.pipeline.integration.total
       results.summary.passedTests += results.pipeline.integration.passed
       results.summary.failedTests += results.pipeline.integration.failed
-      
+
     } catch (error: any) {
       results.pipeline.integration = {
         status: 'ERROR',
@@ -235,10 +238,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate overall status
-    const successRate = results.summary.totalTests > 0 
-      ? (results.summary.passedTests / results.summary.totalTests) * 100 
+    const successRate = results.summary.totalTests > 0
+      ? (results.summary.passedTests / results.summary.totalTests) * 100
       : 0
-    
+
     if (results.summary.failedTests === 0) {
       results.summary.overallStatus = 'ALL_TESTS_PASSED'
     } else if (successRate >= 80) {
@@ -259,7 +262,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     results.duration = Date.now() - startTime
     results.summary.overallStatus = 'PIPELINE_ERROR'
-    
+
     return NextResponse.json({
       status: 'PIPELINE_ERROR',
       error: error.message,

@@ -2,13 +2,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+const JWT_SECRET = process.env.JWT_SECRET ?? ''
 
 // JWT authentication middleware
 function authenticate(request: NextRequest): boolean {
   try {
     const token = request.cookies.get('admin-token')?.value
-    
+
     if (!token) {
       return false
     }

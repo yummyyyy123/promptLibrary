@@ -6,7 +6,7 @@ import { SMSOTP, OTPSession } from '@/lib/smsOTP'
 export async function POST(request: NextRequest) {
   try {
     const { phone, action } = await request.json()
-    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+    const JWT_SECRET = process.env.JWT_SECRET ?? ''
 
     if (!phone) {
       return NextResponse.json({ error: 'Phone number required' }, { status: 400 })
@@ -21,17 +21,17 @@ export async function POST(request: NextRequest) {
     if (action === 'send') {
       // Generate and send OTP
       const otp = SMSOTP.generateOTP()
-      
+
       // Send OTP via SMS
       const smsSent = await SMSOTP.sendOTP(phone, otp)
-      
+
       if (!smsSent) {
         return NextResponse.json({ error: 'Failed to send SMS. Please try again.' }, { status: 500 })
       }
 
       // Store OTP in database
       const stored = await SMSOTP.storeOTP(phone, otp)
-      
+
       if (!stored) {
         return NextResponse.json({ error: 'Failed to store OTP. Please try again.' }, { status: 500 })
       }
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
       // Verify OTP
       const isValid = await SMSOTP.verifyOTP(phone, otp)
-      
+
       if (!isValid) {
         // Increment failed attempts
         await SMSOTP.incrementAttempts(phone)
@@ -64,14 +64,14 @@ export async function POST(request: NextRequest) {
 
       // Complete OTP verification
       const permanentToken = OTPSession.completeOTP(tempToken)
-      
+
       if (!permanentToken) {
         return NextResponse.json({ error: 'Session expired. Please try again.' }, { status: 400 })
       }
 
       // Create JWT token
       const token = jwt.sign(
-        { 
+        {
           phone: phone.slice(-4), // Only store last 4 digits
           role: 'admin',
           otpVerified: true
@@ -107,17 +107,17 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const token = request.cookies.get('admin-token')?.value || ''
-    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+    const JWT_SECRET = process.env.JWT_SECRET ?? ''
 
     if (!token) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         authenticated: false,
         requiresOTP: false
       })
     }
 
     const decoded = jwt.verify(token, JWT_SECRET) as any
-    
+
     return NextResponse.json({
       authenticated: true,
       requiresOTP: !decoded.otpVerified,
@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error: any) {
-    return NextResponse.json({ 
+    return NextResponse.json({
       authenticated: false,
       requiresOTP: false
     })

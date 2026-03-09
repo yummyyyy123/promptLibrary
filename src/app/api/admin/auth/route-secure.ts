@@ -2,13 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'root'
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'r00t'
+const JWT_SECRET = process.env.JWT_SECRET ?? ''
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME ?? ''
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? ''
 
 export async function POST(request: NextRequest) {
   try {
     const { username, password } = await request.json()
+
+    // Reject if env vars not configured
+    if (!ADMIN_USERNAME || !ADMIN_PASSWORD || !JWT_SECRET) {
+      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
+    }
 
     // Validate credentials
     if (username !== ADMIN_USERNAME) {

@@ -2,16 +2,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+const JWT_SECRET = process.env.JWT_SECRET ?? ''
 
 export async function GET(request: NextRequest) {
   try {
     console.log('🔍 DEBUG ADMIN: Request received')
-    
+
     // Check authentication
     const token = request.cookies.get('admin-token')?.value
     console.log('🔍 DEBUG ADMIN: Token present:', !!token)
-    
+
     if (!token) {
       console.log('🔍 DEBUG ADMIN: No token found')
       return NextResponse.json({
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as any
       console.log('🔍 DEBUG ADMIN: Token decoded:', decoded)
-      
+
       if (decoded.role !== 'admin') {
         console.log('🔍 DEBUG ADMIN: Not admin role')
         return NextResponse.json({
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     // Check Supabase credentials
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.SUPABASE_SERVICE_KEY
-    
+
     console.log('🔍 DEBUG ADMIN: Supabase URL:', supabaseUrl ? 'SET' : 'NOT SET')
     console.log('🔍 DEBUG ADMIN: Supabase Key:', supabaseKey ? 'SET' : 'NOT SET')
 

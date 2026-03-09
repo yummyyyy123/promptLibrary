@@ -4,10 +4,13 @@ import jwt from 'jsonwebtoken'
 export async function GET(request: NextRequest) {
   try {
     const token = request.cookies.get('admin-token')?.value || ''
-    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+    const JWT_SECRET = process.env.JWT_SECRET ?? ''
+    if (!JWT_SECRET) {
+      return NextResponse.json({ authenticated: false, error: 'Server misconfiguration' }, { status: 500 })
+    }
 
     if (!token) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         authenticated: false,
         error: 'No token provided'
       }, { status: 401 })
@@ -15,21 +18,21 @@ export async function GET(request: NextRequest) {
 
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as any
-      return NextResponse.json({ 
+      return NextResponse.json({
         authenticated: true,
-        user: { 
-          username: decoded.username, 
-          role: decoded.role 
+        user: {
+          username: decoded.username,
+          role: decoded.role
         }
       })
     } catch (error: any) {
-      return NextResponse.json({ 
+      return NextResponse.json({
         authenticated: false,
         error: 'Invalid token'
       }, { status: 401 })
     }
   } catch (error: any) {
-    return NextResponse.json({ 
+    return NextResponse.json({
       authenticated: false,
       error: 'Server error'
     }, { status: 401 })

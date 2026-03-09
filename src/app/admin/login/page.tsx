@@ -2,138 +2,53 @@
 
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Shield, Eye, EyeOff, Lock, User, AlertCircle, Smartphone, ArrowLeft } from 'lucide-react'
+import { Shield, Eye, EyeOff, Lock, User, AlertCircle, ArrowLeft, Mail } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 export default function AdminLogin() {
-  // This is now the default login page with 2FA
-  const [step, setStep] = useState<'password' | 'otp'>('password')
-  const [credentials, setCredentials] = useState({
-    username: '',
-    password: '',
-    email: '',
-    otp: ''
-  })
+  const [step, setStep] = useState<'credentials' | 'otp'>('credentials')
+  const [credentials, setCredentials] = useState({ username: '', password: '' })
+  const [otp, setOtp] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [tempToken, setTempToken] = useState('')
-  const [phoneLastFour, setPhoneLastFour] = useState('')
   const [resendTimer, setResendTimer] = useState(0)
-  const [otpCode, setOtpCode] = useState('')
   const router = useRouter()
 
-  // Convert Philippine phone to international format
-  const convertToInternational = (phone: string): string => {
-    // Remove any spaces, dashes, or other non-numeric characters
-    const cleaned = phone.replace(/[^\d]/g, '')
-    
-    // Limit to 15 digits max
-    if (cleaned.length > 15) {
-      throw new Error('Phone number cannot exceed 15 digits')
-    }
-    
-    // If starts with +639 and has 12 digits after +, convert properly
-    if (phone.startsWith('+639') && cleaned.length === 12) {
-      return phone // Already in correct format
-    }
-    
-    // If starts with 639 and has 12 digits, add +
-    if (cleaned.startsWith('639') && cleaned.length === 12) {
-      return '+' + cleaned
-    }
-    
-    // If starts with 09 and has 11 digits, convert to +63
-    if (cleaned.startsWith('09') && cleaned.length === 11) {
-      return '+63' + cleaned.substring(1) // Remove 0 and add +63
-    }
-    
-    // If already has +63, validate length
-    if (phone.startsWith('+63') && cleaned.length === 12) {
-      return phone // Already in correct format
-    }
-    
-    // If starts with 63 and has 12 digits, add +
-    if (cleaned.startsWith('63') && cleaned.length === 12) {
-      return '+' + cleaned
-    }
-    
-    return phone // Return original if no conversion needed
-  }
-
-  // Validate email format - only accept spicy0pepper@gmail.com
-  const validateEmail = (email: string): boolean => {
-    // Allow empty input (user hasn't started typing yet)
-    if (!email || email.trim() === '') {
-      return false
-    }
-    
-    console.log('📧 Validating email:', email)
-    
-    // Only accept the specific email
-    const isValid = email === 'spicy0pepper@gmail.com'
-    
-    console.log('📧 Email validation result:', isValid)
-    return isValid
-  }
-
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
+  // Step 1: verify username + password, then trigger OTP send (server picks the admin email)
+  const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setIsLoading(true)
 
     try {
-      // Validate email format
-      if (!validateEmail(credentials.email)) {
-        setError('Please enter the correct email address')
-        setIsLoading(false)
-        return
-      }
-
       const response = await fetch('/api/admin/auth/email-otp', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Origin': window.location.origin,
-          'Referer': window.location.href
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: credentials.email,
-          otp: otpCode
+          username: credentials.username,
+          password: credentials.password
         })
       })
 
       const data = await response.json()
 
-      if (response.ok) {
-        if (data.success) {
-          // OTP sent successfully
-          setTempToken(data.tempToken || 'temp-' + Date.now()) // Use temp token from response
-          setPhoneLastFour(credentials.email.slice(-4)) // Use email last 4 chars
-          setStep('otp')
-          startResendTimer(300)
-          
-          // Show OTP code in alert (for testing)
-          if (typeof window !== 'undefined') {
-            if (data.fallback) {
-              alert(`⚠️ Email not configured - OTP: ${data.otp}\nProvider: ${data.provider || 'None'}\nError: ${data.emailError || 'Check Vercel environment variables'}`)
-            } else {
-              alert(`✅ Email sent via ${data.provider}!\nMessage ID: ${data.messageId}\nCheck your email for OTP`)
-            }
-          }
-        } else {
-          setError(data.error || 'Failed to send OTP')
-        }
+      if (response.ok && data.success) {
+        setTempToken(data.tempToken || '')
+        setStep('otp')
+        startResendTimer(300)
       } else {
-        setError(data.error || 'Login failed')
+        setError(data.error || 'Login failed. Please check your credentials.')
       }
-    } catch (error) {
+    } catch {
       setError('Network error. Please try again.')
     } finally {
       setIsLoading(false)
     }
   }
 
+  // Step 2: verify OTP
   const handleOTPVerification = async () => {
     setError('')
     setIsLoading(true)
@@ -141,13 +56,10 @@ export default function AdminLogin() {
     try {
       const response = await fetch('/api/admin/auth/2fa-login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: credentials.username,
-          email: credentials.email,
-          otp: credentials.otp,
+          otp,
           tempToken,
           action: 'verify-otp'
         })
@@ -160,7 +72,7 @@ export default function AdminLogin() {
       } else {
         setError(data.error || 'OTP verification failed')
       }
-    } catch (error) {
+    } catch {
       setError('Network error. Please try again.')
     } finally {
       setIsLoading(false)
@@ -172,51 +84,26 @@ export default function AdminLogin() {
     setIsLoading(true)
 
     try {
-      // Validate email format
-      if (!validateEmail(credentials.email)) {
-        setError('Please enter the correct email address')
-        setIsLoading(false)
-        return
-      }
-
       const response = await fetch('/api/admin/auth/email-otp', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Origin': window.location.origin,
-          'Referer': window.location.href
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: credentials.email,
-          otp: otpCode
+          username: credentials.username,
+          password: credentials.password
         })
       })
 
       const data = await response.json()
 
-      if (response.ok) {
-        if (data.success) {
-          // OTP resent successfully
-          setTempToken(data.tempToken || 'temp-' + Date.now()) // Use temp token from response
-          startResendTimer(300)
-          setError('OTP resent successfully')
-          setTimeout(() => setError(''), 3000)
-          
-          // Show OTP code in alert (for testing)
-          if (typeof window !== 'undefined') {
-            if (data.fallback) {
-              alert(`⚠️ Email not configured - OTP: ${data.otp}\nProvider: ${data.provider || 'None'}\nError: ${data.emailError || 'Check Vercel environment variables'}`)
-            } else {
-              alert(`✅ Email sent via ${data.provider}!\nMessage ID: ${data.messageId}\nCheck your email for OTP`)
-            }
-          }
-        } else {
-          setError(data.error || 'Failed to resend OTP')
-        }
+      if (response.ok && data.success) {
+        setTempToken(data.tempToken || '')
+        startResendTimer(300)
+        setError('OTP resent successfully')
+        setTimeout(() => setError(''), 3000)
       } else {
         setError(data.error || 'Failed to resend OTP')
       }
-    } catch (error) {
+    } catch {
       setError('Network error. Please try again.')
     } finally {
       setIsLoading(false)
@@ -227,21 +114,10 @@ export default function AdminLogin() {
     setResendTimer(seconds)
     const timer = setInterval(() => {
       setResendTimer((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer)
-          return 0
-        }
+        if (prev <= 1) { clearInterval(timer); return 0 }
         return prev - 1
       })
     }, 1000)
-  }
-
-  const formatPhoneNumber = (phone: string) => {
-    // Format as 09XX XXX XXXX (11 digits)
-    if (phone.length === 11) {
-      return `${phone.slice(0, 4)} ${phone.slice(4, 7)} ${phone.slice(7)}`
-    }
-    return phone
   }
 
   return (
@@ -257,16 +133,17 @@ export default function AdminLogin() {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full mb-4">
               <Shield className="w-8 h-8 text-blue-600 dark:text-blue-400" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Admin Login
-            </h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Login</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-2">
-              {step === 'password' ? 'Enter your credentials for 2FA login' : 'Enter the OTP sent to your phone'}
+              {step === 'credentials'
+                ? 'Enter your admin credentials'
+                : 'Enter the OTP sent to the admin email'}
             </p>
           </div>
 
-          {step === 'password' && (
-            <form onSubmit={handlePasswordSubmit} className="space-y-6">
+          {/* Step 1: Username + Password */}
+          {step === 'credentials' && (
+            <form onSubmit={handleCredentialsSubmit} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Username
@@ -279,6 +156,7 @@ export default function AdminLogin() {
                     onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
                     className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     placeholder="Enter your username"
+                    autoComplete="username"
                     required
                   />
                 </div>
@@ -296,6 +174,7 @@ export default function AdminLogin() {
                     onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
                     className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     placeholder="Enter your password"
+                    autoComplete="current-password"
                     required
                   />
                   <button
@@ -308,30 +187,10 @@ export default function AdminLogin() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Smartphone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="email"
-                    value={credentials.email}
-                    onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    placeholder="Enter your email address"
-                    required
-                  />
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Enter your email address for 2FA verification
-                </p>
-              </div>
-
               {error && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
                   <div className="flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                    <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
                     <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
                   </div>
                 </div>
@@ -339,10 +198,10 @@ export default function AdminLogin() {
 
               <button
                 type="submit"
-                disabled={isLoading || !credentials.username || !credentials.password || !validateEmail(credentials.email)}
+                disabled={isLoading || !credentials.username || !credentials.password}
                 className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? 'Verifying...' : 'Send OTP'}
+                {isLoading ? 'Verifying…' : 'Verify & Send OTP'}
               </button>
 
               <div className="text-center">
@@ -350,21 +209,22 @@ export default function AdminLogin() {
                   🔐 Two-factor authentication enabled for enhanced security
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  You will receive a 6-digit OTP via email after password verification
+                  A 6-digit OTP will be sent to the admin email after credential verification
                 </p>
               </div>
             </form>
           )}
 
+          {/* Step 2: OTP */}
           {step === 'otp' && (
             <div className="space-y-6">
               <div className="text-center">
-                <Smartphone className="w-12 h-12 text-blue-600 dark:text-blue-400 mx-auto mb-4" />
+                <Mail className="w-12 h-12 text-blue-600 dark:text-blue-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                   Two-Factor Authentication
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Enter the 6-digit code sent to {credentials.email}
+                  A 6-digit OTP has been sent to the admin email address.
                 </p>
               </div>
 
@@ -374,12 +234,13 @@ export default function AdminLogin() {
                 </label>
                 <input
                   type="text"
-                  value={credentials.otp}
-                  onChange={(e) => setCredentials({ ...credentials, otp: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-center text-2xl font-mono"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white text-center text-2xl font-mono tracking-widest"
                   placeholder="000000"
                   maxLength={6}
-                  pattern="[0-9]{6}"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
                   required
                 />
               </div>
@@ -387,7 +248,7 @@ export default function AdminLogin() {
               <div className="flex items-center justify-between">
                 <button
                   type="button"
-                  onClick={() => setStep('password')}
+                  onClick={() => { setStep('credentials'); setOtp(''); setError('') }}
                   className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -407,7 +268,7 @@ export default function AdminLogin() {
               {error && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
                   <div className="flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                    <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
                     <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
                   </div>
                 </div>
@@ -415,16 +276,14 @@ export default function AdminLogin() {
 
               <button
                 onClick={handleOTPVerification}
-                disabled={isLoading || credentials.otp.length !== 6}
+                disabled={isLoading || otp.length !== 6}
                 className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? 'Verifying...' : 'Verify OTP'}
+                {isLoading ? 'Verifying…' : 'Verify OTP'}
               </button>
 
               <div className="text-center">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  OTP is valid for 5 minutes
-                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">OTP is valid for 5 minutes</p>
               </div>
             </div>
           )}
