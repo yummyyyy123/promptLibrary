@@ -4,10 +4,22 @@ let supabase: any = null
 
 function getSupabase() {
     if (supabase) return supabase
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-    const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-    supabase = createClient(supabaseUrl, supabaseKey)
-    return supabase
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    // Explicitly check for presence to avoid "supabaseKey is required" crash
+    if (!supabaseUrl || !supabaseKey) {
+        return null
+    }
+
+    try {
+        supabase = createClient(supabaseUrl, supabaseKey)
+        return supabase
+    } catch (e) {
+        console.error('Failed to init Supabase in SecurityLogger:', e)
+        return null
+    }
 }
 
 export type SecurityEventType =
@@ -33,9 +45,12 @@ export class SecurityLogger {
         const { eventType, severity = 'info', ip, userAgent, details = {} } = options
 
         try {
+            const client = getSupabase()
+            if (!client) return
+
             console.log(`🛡️  Security Event: [${eventType.toUpperCase()}] at ${ip || 'unknown'}`)
 
-            const { error } = await getSupabase()
+            const { error } = await client
                 .from('security_logs')
                 .insert([
                     {
@@ -57,6 +72,9 @@ export class SecurityLogger {
 
     // Simplified helper for common events
     static async logUnauthorized(path: string, ip?: string, userAgent?: string) {
+        const client = getSupabase()
+        if (!client) return
+
         await this.logEvent({
             eventType: 'unauthorized_access',
             severity: 'warning',

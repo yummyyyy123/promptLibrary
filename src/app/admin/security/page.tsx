@@ -35,9 +35,19 @@ export default function SecurityDashboard() {
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    // Only initialize if we have the keys, otherwise null to avoid build crash
+    const supabase = (supabaseUrl && supabaseKey)
+        ? createClient(supabaseUrl, supabaseKey)
+        : null
 
     const fetchLogs = async () => {
+        if (!supabase) {
+            console.warn('⚠️ Supabase client not initialized (missing keys)')
+            setLoading(false)
+            return
+        }
+
         setLoading(true)
         let query = supabase
             .from('security_logs')
@@ -59,6 +69,7 @@ export default function SecurityDashboard() {
     }
 
     useEffect(() => {
+        if (!supabase) return
         fetchLogs()
 
         // Subscribe to new logs
@@ -70,7 +81,7 @@ export default function SecurityDashboard() {
             .subscribe()
 
         return () => {
-            supabase.removeChannel(channel)
+            if (supabase) supabase.removeChannel(channel)
         }
     }, [filter])
 

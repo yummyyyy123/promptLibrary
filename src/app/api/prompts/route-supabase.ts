@@ -1,14 +1,23 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!
+let supabase: any = null
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+function getSupabase() {
+  if (supabase) return supabase
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) return null
+  supabase = createClient(url, key)
+  return supabase
+}
 
 export async function GET() {
   try {
-    const { data, error } = await supabase
+    const client = getSupabase()
+    if (!client) return getPromptsFromJSON()
+
+    const { data, error } = await client
       .from('prompts')
       .select('*')
       .order('created_at', { ascending: false })
@@ -31,11 +40,11 @@ async function getPromptsFromJSON() {
   try {
     const { promises: fs } = await import('fs')
     const path = await import('path')
-    
+
     const filePath = path.join(process.cwd(), 'data', 'prompts.json')
     const fileContents = await fs.readFile(filePath, 'utf8')
     const promptsData = JSON.parse(fileContents)
-    
+
     return NextResponse.json(promptsData)
   } catch (error) {
     console.error('Fallback JSON error:', error)
