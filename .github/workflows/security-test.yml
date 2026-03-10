@@ -12,27 +12,6 @@ permissions:
   contents: read
 
 jobs:
-  supabase-rls-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - name: Start Supabase local development
-        run: supabase start
-        # In a real scenario, you'd run `supabase test db` here
-        # against a local container or a staging DB.
-        
-      - name: Run DB Tests (RLS Policies)
-        run: |
-          echo "Simulating RLS tests..."
-          # supabase test db
-          echo "✅ All RLS policies passed."
-
   secret-scanning:
     runs-on: ubuntu-latest
     steps:
