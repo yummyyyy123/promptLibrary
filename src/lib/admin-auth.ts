@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
+import { SecurityLogger } from './security-logger'
 
 // Admin credentials — required environment variables (no defaults allowed)
 function getRequiredEnv(name: string): string {
@@ -117,6 +118,15 @@ export function withAdminAuth(handler: (req: NextRequest) => Promise<NextRespons
       const auth = authenticateAdmin(request)
 
       if (!auth.success) {
+        // Log unauthorized attempt to the database
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+          request.headers.get('x-real-ip') ||
+          'unknown'
+        const userAgent = request.headers.get('user-agent') || 'unknown'
+        const path = new URL(request.url).pathname
+
+        await SecurityLogger.logUnauthorized(path, ip, userAgent)
+
         return NextResponse.json(
           {
             error: 'Unauthorized',
