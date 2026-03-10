@@ -78,7 +78,16 @@ export default function Home() {
   }
 
   const highlightVariables = (text: string) => {
-    return text.replace(/\[([^\]]+)\]/g, '<span class="variable-highlight">[$1]</span>')
+    // 1. First escape any HTML to prevent XSS
+    const escapedText = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;')
+
+    // 2. Then apply the variable highlighting spans
+    return escapedText.replace(/\[([^\]]+)\]/g, '<span class="variable-highlight">[$1]</span>')
   }
 
   const getCategoryIcon = (category: string) => {
@@ -173,8 +182,8 @@ export default function Home() {
                     key={category}
                     onClick={() => setSelectedCategory(category)}
                     className={`w-full text-left px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 group flex items-center justify-between ${selectedCategory === category
-                        ? 'text-white shadow-sm'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                      ? 'text-white shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                       }`}
                     style={{
                       animationDelay: `${index * 50}ms`,
@@ -374,8 +383,8 @@ export default function Home() {
                 <motion.button
                   onClick={() => toggleFavorite(selectedPrompt.id)}
                   className={`p-3 rounded-lg transition-colors ${favorites.includes(selectedPrompt.id)
-                      ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/20 hover:text-emerald-600 dark:hover:text-emerald-400'
+                    ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/20 hover:text-emerald-600 dark:hover:text-emerald-400'
                     }`}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
