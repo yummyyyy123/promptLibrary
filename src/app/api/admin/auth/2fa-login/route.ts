@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       if (!effectiveEmail) {
         return NextResponse.json({
           error: 'Session invalid or expired'
-        }, { status: 400 })
+        }, { status: 401 })
       }
 
       // Verify OTP — strictly validate against stored OTP only
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     } else {
       return NextResponse.json({
         error: 'Invalid action'
-      }, { status: 400 })
+      }, { status: 401 })
     }
 
   } catch (error: any) {
