@@ -1,10 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY || ''
+let supabase: any = null
 
-// Use service key to bypass RLS for logging from server
-const supabase = createClient(supabaseUrl, supabaseKey)
+function getSupabase() {
+    if (supabase) return supabase
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+    const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+    supabase = createClient(supabaseUrl, supabaseKey)
+    return supabase
+}
 
 export type SecurityEventType =
     | 'login_failure'
@@ -31,7 +35,7 @@ export class SecurityLogger {
         try {
             console.log(`🛡️  Security Event: [${eventType.toUpperCase()}] at ${ip || 'unknown'}`)
 
-            const { error } = await supabase
+            const { error } = await getSupabase()
                 .from('security_logs')
                 .insert([
                     {

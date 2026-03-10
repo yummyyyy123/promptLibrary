@@ -14,9 +14,9 @@ import {
     Globe
 } from 'lucide-react'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-const supabase = createClient(supabaseUrl, supabaseKey)
+// Force dynamic rendering to prevent build-time prerender errors with env vars
+export const dynamic = 'force-dynamic'
+
 
 interface SecurityLog {
     id: string
@@ -32,6 +32,10 @@ export default function SecurityDashboard() {
     const [logs, setLogs] = useState<SecurityLog[]>([])
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState('all')
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+    const supabase = createClient(supabaseUrl, supabaseKey)
 
     const fetchLogs = async () => {
         setLoading(true)
@@ -60,7 +64,7 @@ export default function SecurityDashboard() {
         // Subscribe to new logs
         const channel = supabase
             .channel('security_logs_changes')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'security_logs' }, (payload) => {
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'security_logs' }, (payload: any) => {
                 setLogs(prev => [payload.new as SecurityLog, ...prev.slice(0, 49)])
             })
             .subscribe()
