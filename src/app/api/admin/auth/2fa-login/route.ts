@@ -2,8 +2,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { EmailOTP, OTPSession } from '@/lib/emailOTP'
+import { SecurityLogger } from '@/lib/security-logger'
 
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown'
+  const userAgent = request.headers.get('user-agent') || 'unknown'
+
   try {
     // Add CORS headers and handle host validation
     const origin = request.headers.get('origin') || ''
@@ -19,6 +25,14 @@ export async function POST(request: NextRequest) {
     if (action === 'verify-otp') {
       // Step 2: Verify OTP
       if (!otp || !tempToken) {
+        await SecurityLogger.logEvent({
+          eventType: 'mfa_bypass_attempt',
+          severity: 'critical',
+          ip,
+          userAgent,
+          details: { reason: 'missing_otp_or_token', username }
+        })
+
         return NextResponse.json({
           error: 'OTP and temporary token required'
         }, { status: 400 })
@@ -31,6 +45,14 @@ export async function POST(request: NextRequest) {
       }
 
       if (!effectiveEmail) {
+        await SecurityLogger.logEvent({
+          eventType: 'mfa_bypass_attempt',
+          severity: 'critical',
+          ip,
+          userAgent,
+          details: { reason: 'session_expired_or_invalid_token', token: tempToken }
+        })
+
         return NextResponse.json({
           error: 'Session invalid or expired'
         }, { status: 401 })
@@ -40,7 +62,7 @@ export async function POST(request: NextRequest) {
       let isValid = false
 
       try {
-        isValid = await EmailOTP.verifyOTP(effectiveEmail, otp)
+        isValid = await EmailOTP.verifyOTP(effectiveEmail, otp, ip)
       } catch (error) {
         // Database unavailable — cannot verify OTP safely, reject
         console.error('⚠️ Database error during OTP verification:', error)
@@ -56,6 +78,14 @@ export async function POST(request: NextRequest) {
         } catch (error) {
           console.log('⚠️ Could not increment attempts (database not ready)')
         }
+        await SecurityLogger.logEvent({
+          eventType: 'mfa_verify_failure',
+          severity: 'warning',
+          ip,
+          userAgent,
+          details: { email: effectiveEmail, username }
+        })
+
         return NextResponse.json({
           error: 'Invalid OTP. Please try again.'
         }, { status: 400 })
@@ -69,6 +99,14 @@ export async function POST(request: NextRequest) {
           error: 'Session expired. Please try again.'
         }, { status: 400 })
       }
+
+      await SecurityLogger.logEvent({
+        eventType: 'mfa_verify_success',
+        severity: 'info',
+        ip,
+        userAgent,
+        details: { email: effectiveEmail, username }
+      })
 
       const token = jwt.sign(
         {
@@ -105,6 +143,14 @@ export async function POST(request: NextRequest) {
       return response
 
     } else {
+      await SecurityLogger.logEvent({
+        eventType: 'mfa_bypass_attempt',
+        severity: 'warning',
+        ip,
+        userAgent,
+        details: { action, reason: 'invalid_action' }
+      })
+
       return NextResponse.json({
         error: 'Invalid action'
       }, { status: 401 })

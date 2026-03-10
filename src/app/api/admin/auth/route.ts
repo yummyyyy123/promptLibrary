@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateAdminCredentials, generateAdminToken } from '@/lib/admin-auth'
+import { SecurityLogger } from '@/lib/security-logger'
 
 // Simple rate limiting in-memory store
 const loginAttempts = new Map<string, { count: number; resetTime: number }>()
@@ -22,16 +23,18 @@ function checkRateLimit(ip: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown'
+  const userAgent = request.headers.get('user-agent') || 'unknown'
+
   try {
     console.log('🔐 Login attempt received')
-
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      request.headers.get('x-real-ip') ||
-      'unknown'
 
     // Check rate limiting
     if (!checkRateLimit(ip)) {
       console.warn(`🚨 Rate limit exceeded for IP: ${ip}`)
+      await SecurityLogger.logRateLimit(ip, '/api/admin/auth')
       return NextResponse.json(
         {
           error: 'Too many login attempts, please try again later',
@@ -42,15 +45,23 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    console.log('📝 Request body:', body)
-
     const { username, password } = body
+
     console.log('👤 Username provided:', username)
     console.log('🔑 Password provided:', password ? 'YES' : 'NO')
 
     // Validate credentials using the library function (which uses bcrypt)
     if (!validateAdminCredentials(username, password)) {
       console.warn(`🚨 Failed login attempt for username: ${username} from IP: ${ip}`)
+
+      await SecurityLogger.logEvent({
+        eventType: 'login_failure',
+        severity: 'warning',
+        ip,
+        userAgent,
+        details: { username }
+      })
+
       return NextResponse.json(
         {
           error: 'Invalid credentials',
@@ -75,6 +86,14 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`✅ Successful admin login for: ${username} from IP: ${ip}`)
+
+    await SecurityLogger.logEvent({
+      eventType: 'login_success',
+      severity: 'info',
+      ip,
+      userAgent,
+      details: { username }
+    })
 
     // Set secure HTTP-only cookie
     const response = NextResponse.json({
