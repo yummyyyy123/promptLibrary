@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
+import bcrypt from 'bcryptjs'
 
 // Admin credentials — required environment variables (no defaults allowed)
 function getRequiredEnv(name: string): string {
@@ -24,7 +25,17 @@ export function validateAdminCredentials(username: string, password: string): bo
   if (!ADMIN_USERNAME || !ADMIN_PASSWORD) {
     throw new Error('Server misconfiguration: admin credentials not set')
   }
-  return username === ADMIN_USERNAME && password === ADMIN_PASSWORD
+
+  const usernameMatch = username === ADMIN_USERNAME
+
+  // Use bcrypt for password comparison
+  try {
+    const passwordMatch = bcrypt.compareSync(password, ADMIN_PASSWORD)
+    return usernameMatch && passwordMatch
+  } catch (error) {
+    console.error('💥 Bcrypt comparison error:', error)
+    return false
+  }
 }
 
 export function authenticateAdmin(request: NextRequest): AdminAuthResult {

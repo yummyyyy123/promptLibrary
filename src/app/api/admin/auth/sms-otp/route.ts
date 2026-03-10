@@ -1,11 +1,11 @@
-// SMS OTP API - Send and verify OTP codes
 import { NextRequest, NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { SMSOTP, OTPSession } from '@/lib/smsOTP'
+import { validateAdminCredentials } from '@/lib/admin-auth'
 
 export async function POST(request: NextRequest) {
   try {
-    const { phone, action } = await request.json()
+    const { phone, action, username, password } = await request.json()
     const JWT_SECRET = process.env.JWT_SECRET ?? ''
 
     if (!phone) {
@@ -19,6 +19,15 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'send') {
+      // Validate admin credentials before sending any SMS
+      if (!username || !password) {
+        return NextResponse.json({ error: 'Username and password required' }, { status: 401 })
+      }
+
+      if (!validateAdminCredentials(username, password)) {
+        return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
+      }
+
       // Generate and send OTP
       const otp = SMSOTP.generateOTP()
 

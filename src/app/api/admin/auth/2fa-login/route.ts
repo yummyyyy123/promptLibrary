@@ -13,14 +13,6 @@ export async function POST(request: NextRequest) {
 
     const { username, email, action, otp, tempToken } = await request.json()
     const JWT_SECRET = process.env.JWT_SECRET ?? ''
-    const ADMIN_USERNAME = process.env.ADMIN_USERNAME ?? ''
-    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? ''
-
-    // Reject immediately if required env vars are not configured
-    if (!JWT_SECRET || !ADMIN_USERNAME || !ADMIN_PASSWORD) {
-      console.error('🚨 Missing required auth environment variables')
-      return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
-    }
 
     console.log(`📝 Request data: action=${action}, username=${username}, email=${email}`)
 
@@ -78,10 +70,9 @@ export async function POST(request: NextRequest) {
         }, { status: 400 })
       }
 
-      // Create JWT token with 2FA verified
       const token = jwt.sign(
         {
-          username: username || ADMIN_USERNAME,
+          username: username || process.env.ADMIN_USERNAME || 'admin',
           role: 'admin',
           twoFactorVerified: true,
           email: effectiveEmail.slice(-4) // Only store last 4 digits

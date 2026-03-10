@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { generateAdminToken } from '@/lib/admin-auth'
-
-const JWT_SECRET = process.env.JWT_SECRET ?? ''
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME ?? ''
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? ''
+import { validateAdminCredentials, generateAdminToken } from '@/lib/admin-auth'
 
 // Simple rate limiting in-memory store
 const loginAttempts = new Map<string, { count: number; resetTime: number }>()
@@ -49,20 +45,11 @@ export async function POST(request: NextRequest) {
     console.log('📝 Request body:', body)
 
     const { username, password } = body
-    console.log('👤 Username:', username)
+    console.log('👤 Username provided:', username)
     console.log('🔑 Password provided:', password ? 'YES' : 'NO')
-    console.log('🎯 Expected username:', ADMIN_USERNAME)
-    console.log('🎯 Expected password:', ADMIN_PASSWORD ? 'SET' : 'NOT SET')
 
-    // Validate credentials — reject immediately if env vars not set
-    if (!ADMIN_USERNAME || !ADMIN_PASSWORD || !JWT_SECRET) {
-      return NextResponse.json(
-        { error: 'Server misconfiguration', timestamp: new Date().toISOString() },
-        { status: 500 }
-      )
-    }
-
-    if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+    // Validate credentials using the library function (which uses bcrypt)
+    if (!validateAdminCredentials(username, password)) {
       console.warn(`🚨 Failed login attempt for username: ${username} from IP: ${ip}`)
       return NextResponse.json(
         {
