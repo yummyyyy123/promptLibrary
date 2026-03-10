@@ -87,9 +87,41 @@ export class SecurityLogger {
     static async logRateLimit(ip: string, path: string) {
         await this.logEvent({
             eventType: 'rate_limit_triggered',
-            severity: 'warning',
+            severity: 'critical',
             ip,
             details: { path }
         })
+    }
+
+    /**
+     * Checks if an IP is currently rate limited based on recent failures.
+     * Window: 30 minutes
+     * Limit: 5 failures (login or MFA)
+     */
+    static async isRateLimited(ip: string): Promise<boolean> {
+        try {
+            const client = getSupabase()
+            if (!client) return false // Fail open if DB is down, but we should log this
+
+            const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString()
+
+            // Count failures in the last 30 minutes
+            const { count, error } = await client
+                .from('security_logs')
+                .select('*', { count: 'exact', head: true })
+                .eq('ip_address', ip)
+                .in('event_type', ['login_failure', 'mfa_verify_failure', 'mfa_bypass_attempt'])
+                .gt('created_at', thirtyMinutesAgo)
+
+            if (error) {
+                console.error('❌ Error checking rate limit:', error.message)
+                return false
+            }
+
+            return (count || 0) >= 5
+        } catch (err) {
+            console.error('❌ Rate limit check crash:', err)
+            return false
+        }
     }
 }

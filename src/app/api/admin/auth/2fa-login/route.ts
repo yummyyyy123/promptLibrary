@@ -17,6 +17,20 @@ export async function POST(request: NextRequest) {
 
     console.log(`🌐 Request headers: origin=${origin}, host=${host}`)
 
+    // Persistent rate limiting (30m window, 5 attempts)
+    const isLimited = await SecurityLogger.isRateLimited(ip)
+    if (isLimited) {
+      console.warn(`🚨 Rate limit exceeded for IP: ${ip}`)
+      await SecurityLogger.logRateLimit(ip, '/api/admin/auth/2fa-login')
+      return NextResponse.json(
+        {
+          error: 'Too many verification attempts. Access locked for 30 minutes for security.',
+          timestamp: new Date().toISOString()
+        },
+        { status: 429 }
+      )
+    }
+
     const { username, email, action, otp, tempToken } = await request.json()
     const JWT_SECRET = process.env.JWT_SECRET ?? ''
 

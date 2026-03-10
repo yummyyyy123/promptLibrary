@@ -3,39 +3,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { EmailOTP, OTPSession } from '@/lib/emailOTP'
 import { validateAdminCredentials } from '@/lib/admin-auth'
+import { SecurityLogger } from '@/lib/security-logger'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
-
-// Rate limiting storage (in production, use Redis)
-const rateLimitStore = new Map<string, { count: number; lastRequest: number }>()
-
-// Rate limiting middleware
-function rateLimit(email: string, maxRequests = 5, windowMs = 5 * 60 * 1000): boolean {
-  const now = Date.now()
-  const key = email.toLowerCase()
-  const record = rateLimitStore.get(key)
-
-  if (!record) {
-    rateLimitStore.set(key, { count: 1, lastRequest: now })
-    return true
-  }
-
-  // Reset window if expired
-  if (now - record.lastRequest > windowMs) {
-    rateLimitStore.set(key, { count: 1, lastRequest: now })
-    return true
-  }
-
-  // Check if limit exceeded
-  if (record.count >= maxRequests) {
-    return false
-  }
-
-  // Increment count
-  record.count++
-  record.lastRequest = now
-  return true
-}
 
 // Security headers
 function setSecurityHeaders(origin: string) {
@@ -83,8 +53,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Persistent rate limiting (30m window, 5 attempts)
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      request.headers.get('x-real-ip') ||
+      'unknown'
+    const userAgent = request.headers.get('user-agent') || 'unknown'
+
+    const isLimited = await SecurityLogger.isRateLimited(ip)
+    if (isLimited) {
+      console.log(`❌ Rate limit exceeded for: ${ip}`)
+      await SecurityLogger.logRateLimit(ip, '/api/admin/auth/email-otp')
+      return NextResponse.json({
+        error: 'Too many requests. Access locked for 30 minutes for security.'
+      }, {
+        status: 429,
+        headers: setSecurityHeaders(origin)
+      })
+    }
+
     const body = await request.json()
-    const { email: _email, username, password } = body
+    const { username, password } = body
 
     // Validate admin credentials FIRST before doing anything else
     if (!username || !password) {
@@ -99,6 +87,14 @@ export async function POST(request: NextRequest) {
     try {
       if (!validateAdminCredentials(username, password)) {
         console.log(`❌ Invalid credentials attempt for OTP: ${username}`)
+        await SecurityLogger.logEvent({
+          eventType: 'login_failure',
+          severity: 'warning',
+          ip,
+          userAgent,
+          details: { username, step: 'otp_request' }
+        })
+
         return NextResponse.json({
           error: 'Invalid username or password'
         }, {
@@ -124,17 +120,6 @@ export async function POST(request: NextRequest) {
         error: 'Server misconfiguration: admin email not configured'
       }, {
         status: 500,
-        headers: setSecurityHeaders(origin)
-      })
-    }
-
-    // Rate limiting keyed on username to prevent OTP spam
-    if (!rateLimit(username)) {
-      console.log(`❌ Rate limit exceeded for: ${username}`)
-      return NextResponse.json({
-        error: 'Too many requests. Please try again later.'
-      }, {
-        status: 429,
         headers: setSecurityHeaders(origin)
       })
     }

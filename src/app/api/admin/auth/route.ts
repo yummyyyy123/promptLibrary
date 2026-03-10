@@ -2,26 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { validateAdminCredentials, generateAdminToken } from '@/lib/admin-auth'
 import { SecurityLogger } from '@/lib/security-logger'
 
-// Simple rate limiting in-memory store
-const loginAttempts = new Map<string, { count: number; resetTime: number }>()
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now()
-  const attempts = loginAttempts.get(ip)
-
-  if (!attempts || now > attempts.resetTime) {
-    loginAttempts.set(ip, { count: 1, resetTime: now + 15 * 60 * 1000 }) // 15 minutes
-    return true
-  }
-
-  if (attempts.count >= 5) {
-    return false // Rate limited
-  }
-
-  attempts.count++
-  return true
-}
-
+// Persistent rate limiting using Supabase
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     request.headers.get('x-real-ip') ||
@@ -31,13 +12,14 @@ export async function POST(request: NextRequest) {
   try {
     console.log('🔐 Login attempt received')
 
-    // Check rate limiting
-    if (!checkRateLimit(ip)) {
+    // Check persistent rate limiting (30m window, 5 attempts)
+    const isLimited = await SecurityLogger.isRateLimited(ip)
+    if (isLimited) {
       console.warn(`🚨 Rate limit exceeded for IP: ${ip}`)
       await SecurityLogger.logRateLimit(ip, '/api/admin/auth')
       return NextResponse.json(
         {
-          error: 'Too many login attempts, please try again later',
+          error: 'Too many login attempts. Access locked for 30 minutes for security.',
           timestamp: new Date().toISOString()
         },
         { status: 429 }
