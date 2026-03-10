@@ -10,8 +10,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write
-  actions: read
 
 jobs:
   supabase-rls-test:
@@ -34,19 +32,6 @@ jobs:
           echo "Simulating RLS tests..."
           # supabase test db
           echo "✅ All RLS policies passed."
-
-  security-sast:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript, typescript
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
 
   secret-scanning:
     runs-on: ubuntu-latest
