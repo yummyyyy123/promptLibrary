@@ -124,4 +124,33 @@ export class SecurityLogger {
             return false
         }
     }
+
+    /**
+     * Fetches security logs from the database.
+     * Uses Service Key to bypass RLS.
+     */
+    static async getLogs(filter = 'all', limit = 50) {
+        try {
+            const client = getSupabase()
+            if (!client) return { data: [], error: 'Supabase client not initialized' }
+
+            let query = client
+                .from('security_logs')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(limit)
+
+            if (filter === 'critical') {
+                query = query.eq('severity', 'critical')
+            } else if (filter === 'warnings') {
+                query = query.eq('severity', 'warning')
+            }
+
+            const { data, error } = await query
+            return { data: data || [], error }
+        } catch (err) {
+            console.error('❌ SecurityLogger.getLogs crash:', err)
+            return { data: [], error: err }
+        }
+    }
 }

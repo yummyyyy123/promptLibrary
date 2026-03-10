@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@supabase/supabase-js'
 import {
     Shield,
     AlertTriangle,
@@ -37,55 +36,27 @@ export default function SecurityDashboard() {
     const [filter, setFilter] = useState('all')
     const [activeTab, setActiveTab] = useState<'monitoring' | 'github'>('monitoring')
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-
-    // Only initialize if we have the keys, otherwise null to avoid build crash
-    const supabase = (supabaseUrl && supabaseKey)
-        ? createClient(supabaseUrl, supabaseKey)
-        : null
-
     const fetchLogs = async () => {
-        if (!supabase) {
-            console.warn('⚠️ Supabase client not initialized (missing keys)')
-            setLoading(false)
-            return
-        }
-
         setLoading(true)
-        let query = supabase
-            .from('security_logs')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(50)
+        try {
+            const response = await fetch(`/api/admin/security/logs?filter=${filter}&limit=50`)
+            const data = await response.json()
 
-        if (filter !== 'all') {
-            if (filter === 'critical') {
-                query = query.eq('severity', 'critical')
-            } else if (filter === 'warnings') {
-                query = query.eq('severity', 'warning')
+            if (data.logs) {
+                setLogs(data.logs)
+            } else {
+                console.error('❌ Failed to fetch logs:', data.error)
             }
+        } catch (error) {
+            console.error('💥 Error fetching logs:', error)
+        } finally {
+            setLoading(false)
         }
-
-        const { data, error } = await query
-        if (data) setLogs(data)
-        setLoading(false)
     }
 
     useEffect(() => {
-        if (!supabase || activeTab !== 'monitoring') return
-        fetchLogs()
-
-        // Subscribe to new logs
-        const channel = supabase
-            .channel('security_logs_changes')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'security_logs' }, (payload: any) => {
-                setLogs(prev => [payload.new as SecurityLog, ...prev.slice(0, 49)])
-            })
-            .subscribe()
-
-        return () => {
-            if (supabase) supabase.removeChannel(channel)
+        if (activeTab === 'monitoring') {
+            fetchLogs()
         }
     }, [filter, activeTab])
 
